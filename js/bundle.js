@@ -276,6 +276,9 @@
       stage.addChild(this.root);
       this.startScreen = this.createStartScreen();
       this.root.addChild(this.startScreen);
+      const resources = this.createResourceBar();
+      this.staminaText = resources.staminaText;
+      this.coinText = resources.coinText;
       const topPanel = this.createTopPanel();
       this.levelInfo = topPanel.levelInfo;
       this.scoreInfo = topPanel.scoreInfo;
@@ -294,6 +297,12 @@
       this.skillCardsWrap = skillModal.skillCardsWrap;
       this.skillCountdown = skillModal.skillCountdown;
       this.root.addChild(this.skillModal);
+      this.pauseButton = this.createPauseButton();
+      this.pauseButton.visible = false;
+      this.root.addChild(this.pauseButton);
+      this.pauseModal = this.createPauseModal();
+      this.pauseModal.visible = false;
+      this.root.addChild(this.pauseModal);
       this.levelNotice = new Laya.Label("");
       this.levelNotice.fontSize = 48;
       this.levelNotice.bold = true;
@@ -328,7 +337,6 @@
       btn.pos(size.w / 2 - 130, 330);
       btn.on(Laya.Event.CLICK, this, () => {
         var _a;
-        this.startScreen.visible = false;
         (_a = this.startHandler) == null ? void 0 : _a.call(this);
       });
       panel.addChild(btn);
@@ -342,9 +350,41 @@
       panel.addChild(hint);
       return panel;
     }
+    createResourceBar() {
+      const wrap = new Laya.Sprite();
+      wrap.pos(14, 12);
+      this.root.addChild(wrap);
+      const staminaBox = new Laya.Sprite();
+      staminaBox.graphics.drawRoundRect(0, 0, 170, 44, 10, 10, 10, 10, "rgba(0,0,0,0.58)", "#99A4B3", 1);
+      wrap.addChild(staminaBox);
+      const staminaIcon = new Laya.Label("⚡");
+      staminaIcon.fontSize = 22;
+      staminaIcon.color = "#FDE68A";
+      staminaIcon.pos(10, 8);
+      staminaBox.addChild(staminaIcon);
+      const staminaText = new Laya.Label("体力: 5/5");
+      staminaText.fontSize = 20;
+      staminaText.color = "#E5E7EB";
+      staminaText.pos(40, 11);
+      staminaBox.addChild(staminaText);
+      const coinBox = new Laya.Sprite();
+      coinBox.graphics.drawRoundRect(184, 0, 170, 44, 10, 10, 10, 10, "rgba(0,0,0,0.58)", "#99A4B3", 1);
+      wrap.addChild(coinBox);
+      const coinIcon = new Laya.Label("◉");
+      coinIcon.fontSize = 22;
+      coinIcon.color = "#FACC15";
+      coinIcon.pos(194, 8);
+      wrap.addChild(coinIcon);
+      const coinText = new Laya.Label("金币: 0");
+      coinText.fontSize = 20;
+      coinText.color = "#E5E7EB";
+      coinText.pos(224, 11);
+      wrap.addChild(coinText);
+      return { staminaText, coinText };
+    }
     createTopPanel() {
       const left = new Laya.Sprite();
-      left.pos(16, 12);
+      left.pos(16, 64);
       this.root.addChild(left);
       const levelInfo = new Laya.Label("第1关");
       levelInfo.name = "levelInfo";
@@ -375,7 +415,7 @@
       healthText.height = 22;
       healthText.align = "center";
       healthText.valign = "middle";
-      healthText.y = -1;
+      healthText.y = 0;
       healthWrap.addChild(healthText);
       const expWrap = new Laya.Sprite();
       expWrap.pos(0, 108);
@@ -470,9 +510,50 @@
       label.height = height;
       label.valign = "middle";
       label.align = "center";
-      label.y = -2;
+      label.y = 0;
       button.addChild(label);
       return button;
+    }
+    createPauseButton() {
+      const btn = this.createButton("暂停", 108, 52, "rgba(24,34,54,0.82)");
+      btn.pos(16, CANVAS_HEIGHT - 74);
+      btn.on(Laya.Event.CLICK, this, () => {
+        var _a;
+        return (_a = this.pauseHandler) == null ? void 0 : _a.call(this);
+      });
+      return btn;
+    }
+    createPauseModal() {
+      const size = this.getOverlaySize();
+      const modal = new Laya.Sprite();
+      modal.graphics.drawRect(0, 0, size.w, size.h, "rgba(0,0,0,0.6)");
+      const panel = new Laya.Sprite();
+      panel.graphics.drawRoundRect(0, 0, 360, 270, 16, 16, 16, 16, "#111827", "#6B7280", 2);
+      panel.pos(size.w * 0.5 - 180, size.h * 0.42 - 120);
+      modal.addChild(panel);
+      const title = new Laya.Label("游戏暂停");
+      title.fontSize = 36;
+      title.bold = true;
+      title.color = "#F9FAFB";
+      title.width = 360;
+      title.align = "center";
+      title.y = 24;
+      panel.addChild(title);
+      const resumeBtn = this.createButton("恢复游戏", 240, 62, "#2563EB");
+      resumeBtn.pos(60, 100);
+      resumeBtn.on(Laya.Event.CLICK, this, () => {
+        var _a;
+        return (_a = this.resumeHandler) == null ? void 0 : _a.call(this);
+      });
+      panel.addChild(resumeBtn);
+      const homeBtn = this.createButton("返回主页面", 240, 62, "#4B5563");
+      homeBtn.pos(60, 178);
+      homeBtn.on(Laya.Event.CLICK, this, () => {
+        var _a;
+        return (_a = this.backHomeHandler) == null ? void 0 : _a.call(this);
+      });
+      panel.addChild(homeBtn);
+      return modal;
     }
     bindStart(handler) {
       this.startHandler = handler;
@@ -480,11 +561,24 @@
     bindSkillPick(handler) {
       this.skillPickHandler = handler;
     }
+    bindPause(handler) {
+      this.pauseHandler = handler;
+    }
+    bindResume(handler) {
+      this.resumeHandler = handler;
+    }
+    bindBackHome(handler) {
+      this.backHomeHandler = handler;
+    }
     showStart(show) {
       this.startScreen.visible = show;
     }
     updateScore(score) {
       this.scoreInfo.text = `积分: ${score}`;
+    }
+    updateResources(stamina, coins) {
+      this.staminaText.text = `体力: ${stamina}/5`;
+      this.coinText.text = `金币: ${coins}`;
     }
     updateLevel(levelText) {
       this.levelInfo.text = levelText;
@@ -597,6 +691,12 @@
       this.skillModal.visible = false;
       this.skillCardsWrap.removeChildren();
       this.skillCards.length = 0;
+    }
+    showPauseModal(show) {
+      this.pauseModal.visible = show;
+    }
+    setPauseButtonVisible(visible) {
+      this.pauseButton.visible = visible;
     }
     showLevelNotice(text, duration) {
       this.levelNotice.text = text;
@@ -1117,15 +1217,15 @@
               game.pushEnemyBullet({
                 x: boss.x,
                 y: boss.y,
-                vx: Math.cos(angle) * 1.8,
-                vy: Math.sin(angle) * 1.8,
+                vx: Math.cos(angle) * 3.6,
+                vy: Math.sin(angle) * 3.6,
                 radius: 6,
                 color: "#800080",
                 damage: boss.damage,
                 isHoming: true,
-                homingAccel: 0.08,
-                maxSpeed: 3.2,
-                life: 2200,
+                homingDuration: 2e3,
+                homingAccel: 0.12,
+                maxSpeed: 6.4,
                 pierceLeft: 0
               });
             }
@@ -1457,15 +1557,28 @@
     for (let i = game.enemyBullets.length - 1; i >= 0; i--) {
       const bullet = game.enemyBullets[i];
       if (bullet.isHoming) {
-        const homingAccel = bullet.homingAccel === void 0 ? 0.2 : bullet.homingAccel;
-        const maxSpeed = bullet.maxSpeed === void 0 ? 6 : bullet.maxSpeed;
-        const angle = Math.atan2(game.player.y - bullet.y, game.player.x - bullet.x);
-        bullet.vx += Math.cos(angle) * homingAccel;
-        bullet.vy += Math.sin(angle) * homingAccel;
-        const speed = Math.sqrt(bullet.vx * bullet.vx + bullet.vy * bullet.vy);
-        if (speed > maxSpeed) {
-          bullet.vx = bullet.vx / speed * maxSpeed;
-          bullet.vy = bullet.vy / speed * maxSpeed;
+        let canHoming = true;
+        if (bullet.homingDuration !== void 0) {
+          bullet.homingDuration -= deltaTime;
+          if (bullet.homingDuration <= 0) {
+            canHoming = false;
+            bullet.isHoming = false;
+          }
+        }
+        if (canHoming) {
+          const homingAccel = bullet.homingAccel === void 0 ? 0.2 : bullet.homingAccel;
+          const maxSpeed = bullet.maxSpeed === void 0 ? 6 : bullet.maxSpeed;
+          const frameScale = deltaTime / FRAME_TIME;
+          const speed = Math.max(1e-3, Math.sqrt(bullet.vx * bullet.vx + bullet.vy * bullet.vy));
+          const currentAngle = Math.atan2(bullet.vy, bullet.vx);
+          const targetAngle = Math.atan2(game.player.y - bullet.y, game.player.x - bullet.x);
+          const turnRate = 0.085 * frameScale;
+          const angleDelta = normalizeAngle(targetAngle - currentAngle);
+          const turn = clamp(angleDelta, -turnRate, turnRate);
+          const nextAngle = currentAngle + turn;
+          const nextSpeed = Math.min(maxSpeed, speed + homingAccel * frameScale);
+          bullet.vx = Math.cos(nextAngle) * nextSpeed;
+          bullet.vy = Math.sin(nextAngle) * nextSpeed;
         }
       }
       if (bullet.life !== void 0) {
@@ -1483,6 +1596,18 @@
         }
       }
     }
+  }
+  function normalizeAngle(angle) {
+    while (angle > Math.PI) {
+      angle -= Math.PI * 2;
+    }
+    while (angle < -Math.PI) {
+      angle += Math.PI * 2;
+    }
+    return angle;
+  }
+  function clamp(v, min, max) {
+    return Math.max(min, Math.min(max, v));
   }
   function findNearestEnemy(enemies, x, y) {
     let best = null;
@@ -1564,15 +1689,6 @@
       grad.addColorStop(1, "#02030B");
       ctx.fillStyle = grad;
       ctx.fillRect(0, 0, texW, texH);
-      ctx.globalCompositeOperation = "lighter";
-      for (let i = 0; i < 10; i++) {
-        const alpha = Math.max(0, 0.08 - i * 6e-3);
-        ctx.fillStyle = `rgba(45,95,180,${alpha})`;
-        ctx.beginPath();
-        ctx.arc(texW * 0.5, texH * 0.25, 260 + i * 52, 0, Math.PI * 2);
-        ctx.fill();
-      }
-      ctx.globalCompositeOperation = "source-over";
     });
     bgRuntime.starsTex = createTexture(texW, texH, (ctx) => {
       const baseArea = CANVAS_WIDTH * CANVAS_HEIGHT;
@@ -1825,8 +1941,17 @@
       g.drawRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT, "rgba(0,0,0,0.8)");
       g.fillText("游戏结束", CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 80, "bold 48px Arial", "#FFFFFF", "center");
       g.fillText(`最终积分: ${game.score} | 击杀: ${game.kills} | 到达: 第${game.currentLevel}关`, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 20, "24px Arial", "#FFFFFF", "center");
-      g.drawRoundRect(CANVAS_WIDTH / 2 - 100, CANVAS_HEIGHT / 2 + 20, 200, 60, 12, 12, 12, 12, "#4CAF50");
-      g.fillText("重新开始", CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 36, "bold 24px Arial", "#FFFFFF", "center");
+      g.fillText(`可得金币: ${game.pendingCoins}`, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 22, "22px Arial", "#FDE68A", "center");
+      const reviveX = CANVAS_WIDTH / 2 - 220;
+      const restartX = CANVAS_WIDTH / 2 + 20;
+      const btnY = CANVAS_HEIGHT / 2 + 54;
+      const btnW = 200;
+      const btnH = 64;
+      const reviveColor = game.canRevive ? "#2563EB" : "#4B5563";
+      g.drawRoundRect(reviveX, btnY, btnW, btnH, 12, 12, 12, 12, reviveColor);
+      g.fillText(game.canRevive ? "复活继续" : "已复活", reviveX + btnW / 2, btnY + 16, "bold 24px Arial", "#FFFFFF", "center");
+      g.drawRoundRect(restartX, btnY, btnW, btnH, 12, 12, 12, 12, "#16A34A");
+      g.fillText("重新开始", restartX + btnW / 2, btnY + 16, "bold 24px Arial", "#FFFFFF", "center");
       return;
     }
     if (game.gameState === "CLEAR") {
@@ -2144,8 +2269,8 @@
         }
         const fallback = state.textures;
         state.textures = {
-          playerBullet: Laya.loader.getRes(TEX_URL.playerBullet) || fallback.playerBullet,
-          enemyBullet: Laya.loader.getRes(TEX_URL.enemyBullet) || fallback.enemyBullet,
+          playerBullet: fallback.playerBullet,
+          enemyBullet: fallback.enemyBullet,
           enemyNormal: Laya.loader.getRes(TEX_URL.enemyNormal) || fallback.enemyNormal,
           enemyRanged: Laya.loader.getRes(TEX_URL.enemyRanged) || fallback.enemyRanged,
           enemyElite: Laya.loader.getRes(TEX_URL.enemyElite) || fallback.enemyElite,
@@ -2216,7 +2341,7 @@
       sp.visible = true;
       sp.pos(bullet.x, bullet.y);
       sp.rotation = (bullet.angle || Math.atan2(bullet.vy, bullet.vx)) * 180 / Math.PI;
-      const scale = Math.max(0.75, bullet.radius / 4);
+      const scale = Math.max(0.75, bullet.radius / 4) * 2;
       sp.scale(scale, scale);
       sp.pivot(bw / 2, bh / 2);
     }
@@ -2234,7 +2359,7 @@
       sp.visible = true;
       sp.pos(bullet.x, bullet.y);
       sp.rotation = 0;
-      const scale = Math.max(0.55, bullet.radius * 2 / Math.max(bw, bh));
+      const scale = Math.max(0.55, bullet.radius * 2 / Math.max(bw, bh)) * 2;
       sp.scale(scale, scale);
       sp.pivot(bw / 2, bh / 2);
     }
@@ -2269,7 +2394,7 @@
       applyTexture(sp, tex.expOrb);
       sp.visible = true;
       sp.pos(orb.x, orb.y);
-      const scale = Math.max(0.6, orb.radius / 7);
+      const scale = Math.max(0.6, orb.radius / 7) * 2;
       sp.scale(scale, scale);
       sp.rotation = 0;
     }
@@ -2288,7 +2413,7 @@
       applyTexture(sp, tex.drop);
       sp.visible = true;
       sp.pos(drop.x, drop.y);
-      sp.scale(0.85, 0.85);
+      sp.scale(1.7, 1.7);
       sp.rotation = 0;
       write++;
     }
@@ -2696,6 +2821,12 @@
       this.levelProgress = 0;
       this.kills = 0;
       this.score = 0;
+      this.stamina = 5;
+      this.coins = 0;
+      this.lastStaminaClaimDate = "";
+      this.canRevive = true;
+      this.pendingCoins = 0;
+      this.gameOverRewardSettled = false;
       this.isPaused = false;
       this.isBossActive = false;
       this.levelComplete = false;
@@ -2737,6 +2868,7 @@
       this.playerMoveVY = 0;
       this.playerShield = false;
       this.shieldCooldown = 0;
+      this.resourceStorageKey = "shootgame_v4_resources";
       this.player = {
         x: WORLD_WIDTH / 2,
         y: WORLD_HEIGHT / 2,
@@ -2770,12 +2902,17 @@
       this.isTouchDevice = this.detectTouchDevice();
       this.stars = this.createStarField();
       this.ui = new GameUI(stage);
+      this.loadResourceState();
       this.ui.bindStart(() => this.startGame());
       this.ui.bindSkillPick((skillId) => this.selectSkill(skillId));
+      this.ui.bindPause(() => this.pauseGame());
+      this.ui.bindResume(() => this.resumeGame());
+      this.ui.bindBackHome(() => this.returnToMainMenu());
       this.ui.updateHealth(this.player.health, this.player.maxHealth);
       this.ui.updateExp(this.playerLevel, this.playerExp, this.expToNextLevel);
       this.ui.updateEvolution(this.player.evolution.bulletCount, this.player.evolution.fireRateBoost);
       this.ui.updateScore(this.score);
+      this.ui.updateResources(this.stamina, this.coins);
       this.ui.updateLevel("第1关");
       this.initTouchJoystick();
       this.bindInput();
@@ -2806,11 +2943,7 @@
     onMouseDown(event) {
       if (this.isTouchDevice) {
         if (this.gameState === "GAME_OVER") {
-          const clickX2 = event.stageX;
-          const clickY2 = event.stageY;
-          if (clickX2 > CANVAS_WIDTH / 2 - 100 && clickX2 < CANVAS_WIDTH / 2 + 100 && clickY2 > CANVAS_HEIGHT / 2 + 20 && clickY2 < CANVAS_HEIGHT / 2 + 80) {
-            this.resetGame();
-          }
+          this.handleGameOverClick(event.stageX, event.stageY);
           return;
         }
         if (this.gameState === "PLAYING" && event.stageY > CANVAS_HEIGHT * 0.35) {
@@ -2824,16 +2957,12 @@
       if (this.gameState === "PLAYING") {
         this.mouse.x = event.stageX + this.cameraX;
         this.mouse.y = event.stageY + this.cameraY;
+        this.mouse.left = true;
       }
-      this.mouse.left = true;
       if (this.gameState !== "GAME_OVER") {
         return;
       }
-      const clickX = event.stageX;
-      const clickY = event.stageY;
-      if (clickX > CANVAS_WIDTH / 2 - 100 && clickX < CANVAS_WIDTH / 2 + 100 && clickY > CANVAS_HEIGHT / 2 + 20 && clickY < CANVAS_HEIGHT / 2 + 80) {
-        this.resetGame();
-      }
+      this.handleGameOverClick(event.stageX, event.stageY);
     }
     onMouseUp(event) {
       if (this.isTouchDevice) {
@@ -2844,11 +2973,117 @@
         this.mouse.left = false;
       }
     }
-    startGame() {
+    handleGameOverClick(x, y) {
+      const reviveX = CANVAS_WIDTH / 2 - 220;
+      const restartX = CANVAS_WIDTH / 2 + 20;
+      const btnY = CANVAS_HEIGHT / 2 + 54;
+      const btnW = 200;
+      const btnH = 64;
+      const slop = this.isTouchDevice ? 16 : 10;
+      const reviveLeft = reviveX - slop;
+      const reviveRight = reviveX + btnW + slop;
+      const restartLeft = restartX - slop;
+      const restartRight = restartX + btnW + slop;
+      const top = btnY - slop;
+      const bottom = btnY + btnH + slop;
+      if (this.canRevive && x >= reviveLeft && x <= reviveRight && y >= top && y <= bottom) {
+        this.reviveFromGameOver();
+        return;
+      }
+      if (x >= restartLeft && x <= restartRight && y >= top && y <= bottom) {
+        this.restartFromGameOver();
+      }
+    }
+    pauseGame() {
+      if (this.gameState !== "PLAYING" || this.isPaused) {
+        return;
+      }
+      this.isPaused = true;
+      this.ui.showPauseModal(true);
+      this.ui.setPauseButtonVisible(false);
+    }
+    resumeGame() {
+      if (this.gameState !== "PLAYING") {
+        return;
+      }
+      this.isPaused = false;
+      this.ui.showPauseModal(false);
+      this.ui.setPauseButtonVisible(true);
+    }
+    returnToMainMenu() {
+      this.isPaused = false;
+      this.mouse.left = false;
+      this.ui.showPauseModal(false);
+      this.ui.setPauseButtonVisible(false);
+      this.setTouchJoystickVisible(false);
+      clearEntitySprites();
+      this.background.removeChildren();
+      this.world.graphics.clear();
+      this.entityLayer.pos(0, 0);
+      this.world.pos(0, 0);
+      this.cameraX = 0;
+      this.cameraY = 0;
+      this.gameState = "START";
+      this.ui.showStart(true);
+      this.refreshResourceUI();
+    }
+    settleGameOverRewards() {
+      if (this.gameOverRewardSettled) {
+        return;
+      }
+      const coins = Math.max(0, this.pendingCoins);
+      this.gameOverRewardSettled = true;
+      if (coins > 0) {
+        this.addCoins(coins);
+        this.showLevelNotice(`获得金币 +${coins}`, 1600);
+      }
+    }
+    reviveFromGameOver() {
+      if (!this.canRevive || this.gameState !== "GAME_OVER") {
+        return;
+      }
+      this.canRevive = false;
+      this.gameState = "PLAYING";
+      this.isPaused = false;
+      this.pendingCoins = 0;
+      this.gameOverRewardSettled = false;
+      this.player.health = Math.max(1, Math.ceil(this.player.maxHealth * 0.5));
+      this.player.invincible = 120;
+      this.mouse.left = false;
+      this.updateHealthUI();
+      this.ui.setPauseButtonVisible(true);
+      this.showLevelNotice("复活成功！", 1200);
+    }
+    restartFromGameOver() {
+      if (this.gameState !== "GAME_OVER") {
+        return;
+      }
+      this.settleGameOverRewards();
+      if (!this.consumeStamina(1)) {
+        this.showLevelNotice("体力不足，返回主页面", 1500);
+        this.returnToMainMenu();
+        return;
+      }
       this.resetGame();
       this.lastFrameTime = Laya.timer.currTimer;
       this.mouse.x = this.player.x;
       this.mouse.y = this.player.y;
+      this.ui.showStart(false);
+      this.ui.setPauseButtonVisible(true);
+    }
+    startGame() {
+      if (!this.consumeStamina(1)) {
+        this.showLevelNotice("体力不足，明天再来或等待恢复", 1800);
+        this.ui.showStart(true);
+        return;
+      }
+      this.resetGame();
+      this.lastFrameTime = Laya.timer.currTimer;
+      this.mouse.x = this.player.x;
+      this.mouse.y = this.player.y;
+      this.ui.showStart(false);
+      this.ui.showPauseModal(false);
+      this.ui.setPauseButtonVisible(true);
       this.setTouchJoystickVisible(this.isTouchDevice);
     }
     getDistance(x1, y1, x2, y2) {
@@ -2862,6 +3097,77 @@
     }
     clamp(v, min, max) {
       return Math.max(min, Math.min(max, v));
+    }
+    getTodayKey() {
+      const now = /* @__PURE__ */ new Date();
+      const y = now.getFullYear();
+      const month = now.getMonth() + 1;
+      const day = now.getDate();
+      const m = month < 10 ? `0${month}` : `${month}`;
+      const d = day < 10 ? `0${day}` : `${day}`;
+      return `${y}-${m}-${d}`;
+    }
+    loadResourceState() {
+      try {
+        const raw = Laya.Browser.window.localStorage.getItem(this.resourceStorageKey);
+        if (raw) {
+          const data = JSON.parse(raw);
+          this.stamina = Math.max(0, Math.min(5, Number(data.stamina) || 0));
+          this.coins = Math.max(0, Math.floor(Number(data.coins) || 0));
+          this.lastStaminaClaimDate = typeof data.lastStaminaClaimDate === "string" ? data.lastStaminaClaimDate : "";
+        }
+      } catch (_e) {
+        this.stamina = 5;
+        this.coins = 0;
+        this.lastStaminaClaimDate = "";
+      }
+      const today = this.getTodayKey();
+      if (this.lastStaminaClaimDate !== today) {
+        this.stamina = Math.min(5, this.stamina + 5);
+        this.lastStaminaClaimDate = today;
+      }
+      this.saveResourceState();
+    }
+    saveResourceState() {
+      const data = {
+        stamina: this.stamina,
+        coins: this.coins,
+        lastStaminaClaimDate: this.lastStaminaClaimDate
+      };
+      try {
+        Laya.Browser.window.localStorage.setItem(this.resourceStorageKey, JSON.stringify(data));
+      } catch (_e) {
+      }
+    }
+    refreshResourceUI() {
+      this.ui.updateResources(this.stamina, this.coins);
+    }
+    consumeStamina(amount = 1) {
+      if (this.stamina < amount) {
+        return false;
+      }
+      this.stamina -= amount;
+      this.saveResourceState();
+      this.refreshResourceUI();
+      return true;
+    }
+    addCoins(amount) {
+      if (amount <= 0) {
+        return;
+      }
+      this.coins += Math.floor(amount);
+      this.saveResourceState();
+      this.refreshResourceUI();
+    }
+    vibrateIfSupported(pattern) {
+      const nav = Laya.Browser.window.navigator;
+      if (!nav || typeof nav.vibrate !== "function") {
+        return;
+      }
+      try {
+        nav.vibrate(pattern);
+      } catch (_e) {
+      }
     }
     pushExplosion(exp) {
       const explosionLimit = this.severePerformanceMode ? 20 : this.lowPerformanceMode ? 38 : MAX_EXPLOSIONS;
@@ -2975,7 +3281,25 @@
       enterNextLevel(this);
     }
     damagePlayer(amount) {
+      const before = this.gameState;
+      const beforeHp = this.player.health;
+      const beforeShield = this.playerShield;
       damagePlayer(this, amount);
+      const hpLoss = beforeHp - this.player.health;
+      const shieldBroken = beforeShield && !this.playerShield;
+      if (shieldBroken) {
+        this.vibrateIfSupported([8, 24, 8]);
+      } else if (hpLoss > 0) {
+        const vibrationMs = this.gameState === "GAME_OVER" ? 34 : Math.min(28, 14 + Math.ceil(hpLoss * 4));
+        this.vibrateIfSupported(vibrationMs);
+      }
+      if (before !== "GAME_OVER" && this.gameState === "GAME_OVER") {
+        this.pendingCoins = Math.floor(this.score / 10);
+        this.gameOverRewardSettled = false;
+        this.ui.setPauseButtonVisible(false);
+        this.ui.showPauseModal(false);
+        this.setTouchJoystickVisible(false);
+      }
     }
     updateHealthUI() {
       this.ui.updateHealth(this.player.health, this.player.maxHealth);
@@ -3010,10 +3334,16 @@
     }
     resetGame() {
       resetGameState(this);
+      this.canRevive = true;
+      this.pendingCoins = 0;
+      this.gameOverRewardSettled = false;
+      this.isPaused = false;
       this.lastBackgroundRenderTime = 0;
       this.background.graphics.clear();
       clearEntitySprites();
       this.endTouchMove();
+      this.ui.showPauseModal(false);
+      this.ui.showStart(false);
       this.setTouchJoystickVisible(this.isTouchDevice && this.gameState === "PLAYING");
     }
     gameLoop() {
