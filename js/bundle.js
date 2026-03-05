@@ -32,8 +32,18 @@
   };
 
   // src/config/gameConfig.ts
-  var CANVAS_WIDTH = 1200;
-  var CANVAS_HEIGHT = 800;
+  var DESKTOP_CANVAS = { width: 1200, height: 800 };
+  var MOBILE_CANVAS = { width: 720, height: 1280 };
+  var CANVAS_WIDTH = DESKTOP_CANVAS.width;
+  var CANVAS_HEIGHT = DESKTOP_CANVAS.height;
+  var WORLD_WIDTH = CANVAS_WIDTH * 2;
+  var WORLD_HEIGHT = CANVAS_HEIGHT * 2;
+  function setCanvasSize(width, height) {
+    CANVAS_WIDTH = width;
+    CANVAS_HEIGHT = height;
+    WORLD_WIDTH = width * 2;
+    WORLD_HEIGHT = height * 2;
+  }
   var FPS = 60;
   var FRAME_TIME = 1e3 / FPS;
   var MAX_ENEMY_BULLETS = 450;
@@ -268,7 +278,7 @@
       this.root.addChild(this.startScreen);
       const topPanel = this.createTopPanel();
       this.levelInfo = topPanel.levelInfo;
-      this.killsInfo = topPanel.killsInfo;
+      this.scoreInfo = topPanel.scoreInfo;
       this.healthText = topPanel.healthText;
       this.expText = topPanel.expText;
       this.healthBarFill = topPanel.healthBarFill;
@@ -294,19 +304,28 @@
       this.levelNotice.alpha = 0;
       this.root.addChild(this.levelNotice);
     }
+    getOverlaySize() {
+      const stageW = Laya.stage && Laya.stage.width || CANVAS_WIDTH;
+      const stageH = Laya.stage && Laya.stage.height || CANVAS_HEIGHT;
+      const w = Math.max(CANVAS_WIDTH, stageW);
+      const h = Math.max(CANVAS_HEIGHT * 2, stageH * 2);
+      return { w, h };
+    }
     createStartScreen() {
+      const size = this.getOverlaySize();
       const panel = new Laya.Sprite();
-      panel.graphics.drawRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT, "#101010");
+      panel.graphics.drawRect(0, 0, size.w, size.h, "#101010");
+      panel.size(size.w, size.h);
       const title = new Laya.Label("地狱突围 - 重装版");
       title.fontSize = 56;
       title.bold = true;
       title.color = "#FFD700";
-      title.width = CANVAS_WIDTH;
+      title.width = size.w;
       title.align = "center";
       title.y = 180;
       panel.addChild(title);
       const btn = this.createButton("开始游戏", 260, 70, "#4CAF50");
-      btn.pos(CANVAS_WIDTH / 2 - 130, 330);
+      btn.pos(size.w / 2 - 130, 330);
       btn.on(Laya.Event.CLICK, this, () => {
         var _a;
         this.startScreen.visible = false;
@@ -317,7 +336,7 @@
       hint.fontSize = 24;
       hint.color = "#CCCCCC";
       hint.leading = 12;
-      hint.width = CANVAS_WIDTH;
+      hint.width = size.w;
       hint.align = "center";
       hint.y = 450;
       panel.addChild(hint);
@@ -333,12 +352,12 @@
       levelInfo.bold = true;
       levelInfo.color = "#FFD700";
       left.addChild(levelInfo);
-      const killsInfo = new Laya.Label("击杀数: 0 / 目标: 30");
-      killsInfo.name = "killsInfo";
-      killsInfo.fontSize = 20;
-      killsInfo.color = "#FFFFFF";
-      killsInfo.y = 40;
-      left.addChild(killsInfo);
+      const scoreInfo = new Laya.Label("积分: 0");
+      scoreInfo.name = "scoreInfo";
+      scoreInfo.fontSize = 22;
+      scoreInfo.color = "#FDE68A";
+      scoreInfo.y = 40;
+      left.addChild(scoreInfo);
       const healthWrap = new Laya.Sprite();
       healthWrap.pos(0, 78);
       healthWrap.graphics.drawRect(0, 0, 250, 22, "#444444", "#FFFFFF", 1);
@@ -353,7 +372,10 @@
       healthText.bold = true;
       healthText.color = "#FFFFFF";
       healthText.width = 250;
+      healthText.height = 22;
       healthText.align = "center";
+      healthText.valign = "middle";
+      healthText.y = -1;
       healthWrap.addChild(healthText);
       const expWrap = new Laya.Sprite();
       expWrap.pos(0, 108);
@@ -369,7 +391,7 @@
       expText.color = "#DDDDDD";
       expText.y = 126;
       left.addChild(expText);
-      return { levelInfo, killsInfo, healthText, expText, healthBarFill, expBarFill };
+      return { levelInfo, scoreInfo, healthText, expText, healthBarFill, expBarFill };
     }
     createEvolutionPanel() {
       const panel = new Laya.Sprite();
@@ -379,36 +401,45 @@
       const bulletsLabel = new Laya.Label("弹幕数量");
       bulletsLabel.fontSize = 16;
       bulletsLabel.color = "#AAAAAA";
-      bulletsLabel.pos(45, 14);
+      bulletsLabel.width = 120;
+      bulletsLabel.align = "center";
+      bulletsLabel.pos(20, 14);
       panel.addChild(bulletsLabel);
       const evoBullets = new Laya.Label("1 / 5");
       evoBullets.fontSize = 24;
       evoBullets.bold = true;
       evoBullets.color = "#FFD700";
-      evoBullets.pos(45, 40);
+      evoBullets.width = 120;
+      evoBullets.align = "center";
+      evoBullets.pos(20, 40);
       panel.addChild(evoBullets);
       const speedLabel = new Laya.Label("射速加成");
       speedLabel.fontSize = 16;
       speedLabel.color = "#AAAAAA";
-      speedLabel.pos(205, 14);
+      speedLabel.width = 120;
+      speedLabel.align = "center";
+      speedLabel.pos(200, 14);
       panel.addChild(speedLabel);
       const evoSpeed = new Laya.Label("0%");
       evoSpeed.fontSize = 24;
       evoSpeed.bold = true;
       evoSpeed.color = "#FFD700";
-      evoSpeed.pos(205, 40);
+      evoSpeed.width = 120;
+      evoSpeed.align = "center";
+      evoSpeed.pos(200, 40);
       panel.addChild(evoSpeed);
       return { evoBullets, evoSpeed };
     }
     createSkillModal() {
+      const size = this.getOverlaySize();
       const modal = new Laya.Sprite();
-      modal.graphics.drawRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT, "rgba(0,0,0,0.85)");
+      modal.graphics.drawRect(0, 0, size.w, size.h, "rgba(0,0,0,0.85)");
       modal.visible = false;
       const title = new Laya.Label("升级！选择一个技能");
       title.fontSize = 36;
       title.bold = true;
       title.color = "#FFD700";
-      title.width = CANVAS_WIDTH;
+      title.width = size.w;
       title.align = "center";
       title.y = 130;
       modal.addChild(title);
@@ -416,19 +447,19 @@
       countdown.name = "skillCountdown";
       countdown.fontSize = 24;
       countdown.color = "#FFFFFF";
-      countdown.width = CANVAS_WIDTH;
+      countdown.width = size.w;
       countdown.align = "center";
       countdown.y = 190;
       modal.addChild(countdown);
       const cardsWrap = new Laya.Sprite();
       cardsWrap.name = "skillCardsWrap";
-      cardsWrap.pos(CANVAS_WIDTH / 2, 300);
+      cardsWrap.pos(size.w / 2, 300);
       modal.addChild(cardsWrap);
       return { modal, skillCardsWrap: cardsWrap, skillCountdown: countdown };
     }
     createButton(text, width, height, color) {
       const button = new Laya.Sprite();
-      button.graphics.drawRect(0, 0, width, height, color);
+      button.graphics.drawRoundRect(0, 0, width, height, 14, 14, 14, 14, color, "#FFFFFF", 2);
       button.size(width, height);
       button.mouseEnabled = true;
       const label = new Laya.Label(text);
@@ -439,6 +470,7 @@
       label.height = height;
       label.valign = "middle";
       label.align = "center";
+      label.y = -2;
       button.addChild(label);
       return button;
     }
@@ -451,8 +483,8 @@
     showStart(show) {
       this.startScreen.visible = show;
     }
-    updateKills(kills, target) {
-      this.killsInfo.text = `击杀数: ${kills} / 目标: ${target}`;
+    updateScore(score) {
+      this.scoreInfo.text = `积分: ${score}`;
     }
     updateLevel(levelText) {
       this.levelInfo.text = levelText;
@@ -586,54 +618,124 @@
   };
 
   // src/game/systems/collisionSystem.ts
+  var COLLISION_CELL_SIZE = 96;
+  var GRID_WIDTH = 32;
+  var enemyGrid = /* @__PURE__ */ new Map();
+  var usedGridKeys = [];
+  function clearEnemyGrid() {
+    for (let i = 0; i < usedGridKeys.length; i++) {
+      const key = usedGridKeys[i];
+      const bucket = enemyGrid.get(key);
+      if (bucket) {
+        bucket.length = 0;
+      }
+    }
+    usedGridKeys.length = 0;
+  }
+  function getGridKey(cx, cy) {
+    return cy * GRID_WIDTH + cx;
+  }
+  function buildEnemyGrid(enemies) {
+    clearEnemyGrid();
+    for (let i = 0; i < enemies.length; i++) {
+      const enemy = enemies[i];
+      if (enemy.health <= 0) {
+        continue;
+      }
+      const cx = Math.max(0, Math.floor(enemy.x / COLLISION_CELL_SIZE));
+      const cy = Math.max(0, Math.floor(enemy.y / COLLISION_CELL_SIZE));
+      const key = getGridKey(cx, cy);
+      let bucket = enemyGrid.get(key);
+      if (!bucket) {
+        bucket = [];
+        enemyGrid.set(key, bucket);
+      }
+      if (bucket.length === 0) {
+        usedGridKeys.push(key);
+      }
+      bucket.push(enemy);
+    }
+  }
   function checkCollisions(game, timestamp) {
+    buildEnemyGrid(game.enemies);
     for (let i = game.bullets.length - 1; i >= 0; i--) {
       const bullet = game.bullets[i];
-      for (let j = game.enemies.length - 1; j >= 0; j--) {
-        const enemy = game.enemies[j];
-        const hitRadius = bullet.radius + enemy.radius;
-        if (game.getDistanceSq(bullet.x, bullet.y, enemy.x, enemy.y) >= hitRadius * hitRadius) {
+      const cx = Math.max(0, Math.floor(bullet.x / COLLISION_CELL_SIZE));
+      const cy = Math.max(0, Math.floor(bullet.y / COLLISION_CELL_SIZE));
+      let hit = false;
+      for (let oy = -1; oy <= 1 && !hit; oy++) {
+        const gy = cy + oy;
+        if (gy < 0) {
           continue;
         }
-        enemy.health -= bullet.damage;
-        game.pushExplosion({
-          x: bullet.x,
-          y: bullet.y,
-          radius: 2,
-          maxRadius: 24,
-          alpha: 0.9,
-          growth: 5,
-          fade: 0.08,
-          color: enemy.isBoss ? "255,220,120" : "120,200,255",
-          ring: true,
-          lineWidth: 2
-        });
-        if (enemy.health <= 0) {
-          if (enemy.isBoss) {
-            game.enemies.splice(j, 1);
-            game.isBossActive = false;
-            game.levelComplete = true;
-            game.levelTransitionAt = Math.max(game.levelTransitionAt, timestamp + 3e3);
-            game.pushExplosion({ x: enemy.x, y: enemy.y, radius: 10, maxRadius: 130, alpha: 1, growth: 10, fade: 0.04, color: "255,180,80", ring: true, lineWidth: 4 });
-            game.pushExplosion({ x: enemy.x, y: enemy.y, radius: 20, maxRadius: 180, alpha: 0.8, growth: 13, fade: 0.045, color: "255,120,40", ring: false });
-            game.showLevelNotice("BOSS击破！奖励技能选择");
-            game.triggerSkillSelection();
-          } else {
-            game.pushExplosion({ x: enemy.x, y: enemy.y, radius: 6, maxRadius: 48, alpha: 1, growth: 8, fade: 0.06, color: enemy.isHorde ? "255,90,90" : "255,180,120", ring: false });
-            game.pushExplosion({ x: enemy.x, y: enemy.y, radius: 0, maxRadius: 64, alpha: 0.7, growth: 7, fade: 0.05, color: enemy.isHorde ? "255,150,150" : "255,230,180", ring: true, lineWidth: 2 });
-            game.killEnemy(enemy);
+        for (let ox = -1; ox <= 1 && !hit; ox++) {
+          const gx = cx + ox;
+          if (gx < 0) {
+            continue;
+          }
+          const bucket = enemyGrid.get(getGridKey(gx, gy));
+          if (!bucket || bucket.length === 0) {
+            continue;
+          }
+          for (let j = bucket.length - 1; j >= 0; j--) {
+            const enemy = bucket[j];
+            if (enemy.health <= 0) {
+              continue;
+            }
+            const hitRadius = bullet.radius + enemy.radius;
+            if (game.getDistanceSq(bullet.x, bullet.y, enemy.x, enemy.y) >= hitRadius * hitRadius) {
+              continue;
+            }
+            enemy.health -= bullet.damage;
+            if (!game.lowPerformanceMode || enemy.isBoss || (i + j & 1) === 0) {
+              game.pushExplosion({
+                x: bullet.x,
+                y: bullet.y,
+                radius: 2,
+                maxRadius: 24,
+                alpha: 0.9,
+                growth: 5,
+                fade: 0.08,
+                color: enemy.isBoss ? "255,220,120" : "120,200,255",
+                ring: true,
+                lineWidth: 2
+              });
+            }
+            if (enemy.health <= 0) {
+              if (enemy.isBoss) {
+                const bossIndex = game.enemies.indexOf(enemy);
+                if (bossIndex >= 0) {
+                  game.enemies.splice(bossIndex, 1);
+                }
+                game.isBossActive = false;
+                game.levelComplete = true;
+                game.levelTransitionAt = Math.max(game.levelTransitionAt, timestamp + 3e3);
+                game.pushExplosion({ x: enemy.x, y: enemy.y, radius: 10, maxRadius: 130, alpha: 1, growth: 10, fade: 0.04, color: "255,180,80", ring: true, lineWidth: 4 });
+                game.pushExplosion({ x: enemy.x, y: enemy.y, radius: 20, maxRadius: 180, alpha: 0.8, growth: 13, fade: 0.045, color: "255,120,40", ring: false });
+                game.showLevelNotice("BOSS击破！奖励技能选择");
+                game.triggerSkillSelection();
+              } else {
+                if (!game.lowPerformanceMode || (timestamp & 1) === 0) {
+                  game.pushExplosion({ x: enemy.x, y: enemy.y, radius: 6, maxRadius: 48, alpha: 1, growth: 8, fade: 0.06, color: enemy.isHorde ? "255,90,90" : "255,180,120", ring: false });
+                  game.pushExplosion({ x: enemy.x, y: enemy.y, radius: 0, maxRadius: 64, alpha: 0.7, growth: 7, fade: 0.05, color: enemy.isHorde ? "255,150,150" : "255,230,180", ring: true, lineWidth: 2 });
+                }
+                game.killEnemy(enemy);
+              }
+            }
+            if (bullet.pierceLeft > 0) {
+              bullet.pierceLeft--;
+            } else {
+              game.bullets.splice(i, 1);
+            }
+            hit = true;
+            break;
           }
         }
-        if (bullet.pierceLeft > 0) {
-          bullet.pierceLeft--;
-        } else {
-          game.bullets.splice(i, 1);
-        }
-        break;
       }
     }
     if (game.player.invincible <= 0) {
-      for (let i = game.enemyBullets.length - 1; i >= 0; i--) {
+      const step = game.lowPerformanceMode ? 2 : 1;
+      for (let i = game.enemyBullets.length - 1; i >= 0; i -= step) {
         const bullet = game.enemyBullets[i];
         const hitRadius = bullet.radius + game.player.radius;
         if (game.getDistanceSq(bullet.x, bullet.y, game.player.x, game.player.y) < hitRadius * hitRadius) {
@@ -669,6 +771,7 @@
         game.drops.splice(i, 1);
       }
     }
+    clearEnemyGrid();
   }
 
   // src/game/systems/enemySystem.ts
@@ -676,29 +779,29 @@
     if (game.isBossActive || game.levelComplete || game.waitingForBoss || game.enemies.length >= LEVEL_CONFIG[game.currentLevel].maxEnemyCount) {
       return;
     }
-    if (timestamp - game.lastHordeSpawn > Math.max(6e3, 14e3 - game.currentLevel * 180) && game.enemies.length <= Math.floor(LEVEL_CONFIG[game.currentLevel].maxEnemyCount * 0.6) && Math.random() < 0.18) {
-      const hordeCount = 12 + Math.floor(Math.random() * 6);
-      const side2 = Math.floor(Math.random() * 4);
+    if (timestamp > 2e3 && timestamp - game.lastHordeSpawn > Math.max(6e3, 14e3 - game.currentLevel * 180) && game.enemies.length <= Math.floor(LEVEL_CONFIG[game.currentLevel].maxEnemyCount * 0.6) && Math.random() < 0.18) {
+      const hordeCount = game.lowPerformanceMode ? 10 + Math.floor(Math.random() * 4) : 12 + Math.floor(Math.random() * 6);
       for (let i = 0; i < hordeCount; i++) {
-        const edgeOffset = i * 16 + Math.random() * 20;
+        const side2 = Math.floor(Math.random() * 4);
+        const edgeOffset = 40 + Math.random() * 120;
         let x2 = 0;
         let y2 = 0;
         switch (side2) {
           case 0:
-            x2 = CANVAS_WIDTH / (hordeCount + 1) * (i + 1) + game.random(-16, 16);
-            y2 = -40 - edgeOffset;
+            x2 = game.clamp(game.player.x + game.random(-CANVAS_WIDTH * 0.45, CANVAS_WIDTH * 0.45), 40, WORLD_WIDTH - 40);
+            y2 = game.clamp(game.player.y - CANVAS_HEIGHT * 0.6 - edgeOffset, 40, WORLD_HEIGHT - 40);
             break;
           case 1:
-            x2 = CANVAS_WIDTH + 40 + edgeOffset;
-            y2 = CANVAS_HEIGHT / (hordeCount + 1) * (i + 1) + game.random(-16, 16);
+            x2 = game.clamp(game.player.x + CANVAS_WIDTH * 0.6 + edgeOffset, 40, WORLD_WIDTH - 40);
+            y2 = game.clamp(game.player.y + game.random(-CANVAS_HEIGHT * 0.45, CANVAS_HEIGHT * 0.45), 40, WORLD_HEIGHT - 40);
             break;
           case 2:
-            x2 = CANVAS_WIDTH / (hordeCount + 1) * (i + 1) + game.random(-16, 16);
-            y2 = CANVAS_HEIGHT + 40 + edgeOffset;
+            x2 = game.clamp(game.player.x + game.random(-CANVAS_WIDTH * 0.45, CANVAS_WIDTH * 0.45), 40, WORLD_WIDTH - 40);
+            y2 = game.clamp(game.player.y + CANVAS_HEIGHT * 0.6 + edgeOffset, 40, WORLD_HEIGHT - 40);
             break;
           default:
-            x2 = -40 - edgeOffset;
-            y2 = CANVAS_HEIGHT / (hordeCount + 1) * (i + 1) + game.random(-16, 16);
+            x2 = game.clamp(game.player.x - CANVAS_WIDTH * 0.6 - edgeOffset, 40, WORLD_WIDTH - 40);
+            y2 = game.clamp(game.player.y + game.random(-CANVAS_HEIGHT * 0.45, CANVAS_HEIGHT * 0.45), 40, WORLD_HEIGHT - 40);
             break;
         }
         game.enemies.push({
@@ -717,7 +820,6 @@
       }
       game.lastHordeSpawn = timestamp;
       game.lastEnemySpawn = timestamp;
-      game.showLevelNotice("尸潮来袭！", 1500);
       return;
     }
     const spawnInterval = LEVEL_CONFIG[game.currentLevel].spawnRate;
@@ -730,20 +832,20 @@
     const side = Math.floor(Math.random() * 4);
     switch (side) {
       case 0:
-        x = Math.random() * CANVAS_WIDTH;
-        y = -50;
+        x = game.clamp(game.player.x + game.random(-CANVAS_WIDTH * 0.45, CANVAS_WIDTH * 0.45), 20, WORLD_WIDTH - 20);
+        y = game.clamp(game.player.y - CANVAS_HEIGHT * 0.58 - 50, 20, WORLD_HEIGHT - 20);
         break;
       case 1:
-        x = CANVAS_WIDTH + 50;
-        y = Math.random() * CANVAS_HEIGHT;
+        x = game.clamp(game.player.x + CANVAS_WIDTH * 0.58 + 50, 20, WORLD_WIDTH - 20);
+        y = game.clamp(game.player.y + game.random(-CANVAS_HEIGHT * 0.45, CANVAS_HEIGHT * 0.45), 20, WORLD_HEIGHT - 20);
         break;
       case 2:
-        x = Math.random() * CANVAS_WIDTH;
-        y = CANVAS_HEIGHT + 50;
+        x = game.clamp(game.player.x + game.random(-CANVAS_WIDTH * 0.45, CANVAS_WIDTH * 0.45), 20, WORLD_WIDTH - 20);
+        y = game.clamp(game.player.y + CANVAS_HEIGHT * 0.58 + 50, 20, WORLD_HEIGHT - 20);
         break;
       default:
-        x = -50;
-        y = Math.random() * CANVAS_HEIGHT;
+        x = game.clamp(game.player.x - CANVAS_WIDTH * 0.58 - 50, 20, WORLD_WIDTH - 20);
+        y = game.clamp(game.player.y + game.random(-CANVAS_HEIGHT * 0.45, CANVAS_HEIGHT * 0.45), 20, WORLD_HEIGHT - 20);
         break;
     }
     const levelConfig = LEVEL_CONFIG[game.currentLevel];
@@ -783,17 +885,18 @@
       const dx = game.player.x - enemy.x;
       const dy = game.player.y - enemy.y;
       const distSq = dx * dx + dy * dy;
-      const dist = distSq > 0 ? Math.sqrt(distSq) : 0;
       if (enemy.isRanged) {
-        if (dist > 300) {
-          if (dist > 0) {
-            enemy.x += dx / dist * enemy.speed;
-            enemy.y += dy / dist * enemy.speed;
+        if (distSq > 300 * 300) {
+          if (distSq > 0) {
+            const invDist = 1 / Math.sqrt(distSq);
+            enemy.x += dx * invDist * enemy.speed;
+            enemy.y += dy * invDist * enemy.speed;
           }
-        } else if (dist < 200) {
-          if (dist > 0) {
-            enemy.x -= dx / dist * enemy.speed;
-            enemy.y -= dy / dist * enemy.speed;
+        } else if (distSq < 200 * 200) {
+          if (distSq > 0) {
+            const invDist = 1 / Math.sqrt(distSq);
+            enemy.x -= dx * invDist * enemy.speed;
+            enemy.y -= dy * invDist * enemy.speed;
           }
         }
         if (timestamp - (enemy.lastAttack || 0) > 2e3) {
@@ -810,12 +913,13 @@
             pierceLeft: 0
           });
         }
-      } else if (dist > 0) {
-        enemy.x += dx / dist * enemy.speed;
-        enemy.y += dy / dist * enemy.speed;
+      } else if (distSq > 0) {
+        const invDist = 1 / Math.sqrt(distSq);
+        enemy.x += dx * invDist * enemy.speed;
+        enemy.y += dy * invDist * enemy.speed;
       }
-      enemy.x = game.clamp(enemy.x, enemy.radius, CANVAS_WIDTH - enemy.radius);
-      enemy.y = game.clamp(enemy.y, enemy.radius, CANVAS_HEIGHT - enemy.radius);
+      enemy.x = game.clamp(enemy.x, enemy.radius, WORLD_WIDTH - enemy.radius);
+      enemy.y = game.clamp(enemy.y, enemy.radius, WORLD_HEIGHT - enemy.radius);
     }
   }
   function killEnemy(game, enemy) {
@@ -843,8 +947,9 @@
       game.enemies.splice(index, 1);
     }
     game.kills++;
+    game.score += enemy.isBoss ? 500 : 10;
     game.levelProgress++;
-    game.ui.updateKills(game.kills, LEVEL_CONFIG[game.currentLevel].killTarget);
+    game.ui.updateScore(game.score);
     if (game.levelProgress >= LEVEL_CONFIG[game.currentLevel].killTarget && !game.isBossActive && !game.waitingForBoss) {
       game.waitingForBoss = true;
       game.showLevelNotice("清理残敌，准备BOSS战！", 3e3);
@@ -860,8 +965,8 @@
     const bossBase = BOSS_CONFIG[bossType] || BOSS_CONFIG.BARRAGE;
     const scaledHealth = bossBase.maxHealth * (1 + (game.currentLevel - 1) * 0.5);
     game.enemies.push(__spreadProps(__spreadValues({
-      x: CANVAS_WIDTH / 2,
-      y: 100
+      x: game.clamp(game.player.x, bossBase.radius, WORLD_WIDTH - bossBase.radius),
+      y: game.clamp(game.player.y - CANVAS_HEIGHT * 0.35, bossBase.radius, WORLD_HEIGHT - bossBase.radius)
     }, bossBase), {
       health: scaledHealth,
       maxHealth: scaledHealth,
@@ -902,18 +1007,21 @@
     const skill = skills[Math.floor(Math.random() * skills.length)];
     switch (skill) {
       case "BARRAGE_CIRCLE":
-        for (let i = 0; i < 36; i++) {
-          const bulletAngle = i * 10 * Math.PI / 180;
-          game.pushEnemyBullet({
-            x: boss.x,
-            y: boss.y,
-            vx: Math.cos(bulletAngle) * 6,
-            vy: Math.sin(bulletAngle) * 6,
-            radius: 5,
-            color: boss.color,
-            damage: boss.damage,
-            pierceLeft: 0
-          });
+        {
+          const bulletCount = 36;
+          for (let i = 0; i < bulletCount; i++) {
+            const bulletAngle = Math.PI * 2 / bulletCount * i;
+            game.pushEnemyBullet({
+              x: boss.x,
+              y: boss.y,
+              vx: Math.cos(bulletAngle) * 6,
+              vy: Math.sin(bulletAngle) * 6,
+              radius: 5,
+              color: boss.color,
+              damage: boss.damage,
+              pierceLeft: 0
+            });
+          }
         }
         break;
       case "SPIRAL_SHOT":
@@ -945,8 +1053,8 @@
         boss.stompRadius = 200;
         boss.stompFlash = 0;
         boss.stompTarget = {
-          x: game.clamp(game.player.x, boss.radius, CANVAS_WIDTH - boss.radius),
-          y: game.clamp(game.player.y, boss.radius, CANVAS_HEIGHT - boss.radius)
+          x: game.clamp(game.player.x, boss.radius, WORLD_WIDTH - boss.radius),
+          y: game.clamp(game.player.y, boss.radius, WORLD_HEIGHT - boss.radius)
         };
         break;
       case "QUAKE":
@@ -957,8 +1065,8 @@
           const angle = Math.PI * 2 / 5 * i + game.random(-0.25, 0.25);
           const distance = game.random(90, 230);
           game.bossBombs.push({
-            x: game.clamp(game.player.x + Math.cos(angle) * distance, 60, CANVAS_WIDTH - 60),
-            y: game.clamp(game.player.y + Math.sin(angle) * distance, 60, CANVAS_HEIGHT - 60),
+            x: game.clamp(game.player.x + Math.cos(angle) * distance, 60, WORLD_WIDTH - 60),
+            y: game.clamp(game.player.y + Math.sin(angle) * distance, 60, WORLD_HEIGHT - 60),
             timer: 1500 + i * 120,
             radius: 16,
             blastRadius: 100,
@@ -1027,8 +1135,8 @@
       case "LAVA_POOL":
         for (let i = 0; i < 5; i++) {
           game.pushEnemyBullet({
-            x: game.random(100, CANVAS_WIDTH - 100),
-            y: game.random(100, CANVAS_HEIGHT - 100),
+            x: game.random(100, WORLD_WIDTH - 100),
+            y: game.random(100, WORLD_HEIGHT - 100),
             vx: 0,
             vy: 0,
             radius: 40,
@@ -1106,9 +1214,10 @@
   }
   function updateBossStates(game, deltaTime, timestamp) {
     const frameScale = deltaTime / FRAME_TIME;
-    game.enemies.forEach((boss) => {
+    for (let i = 0; i < game.enemies.length; i++) {
+      const boss = game.enemies[i];
       if (!boss.isBoss) {
-        return;
+        continue;
       }
       if (boss.frenzyApplied && boss.frenzyUntil && timestamp >= boss.frenzyUntil) {
         boss.speed /= 1.4;
@@ -1130,7 +1239,7 @@
         if ((boss.stompTimer || 0) <= 0) {
           game.resolveStompImpact(boss);
         }
-        return;
+        continue;
       }
       if (boss.isChargeAiming) {
         boss.chargeAimTimer = (boss.chargeAimTimer || 0) - deltaTime;
@@ -1139,7 +1248,7 @@
           boss.isChargeWarning = true;
           boss.chargeWarningTimer = 420;
         }
-        return;
+        continue;
       }
       if (boss.isChargeWarning) {
         boss.chargeWarningTimer = (boss.chargeWarningTimer || 0) - deltaTime;
@@ -1147,7 +1256,7 @@
           boss.isChargeWarning = false;
           boss.isCharging = true;
         }
-        return;
+        continue;
       }
       if (boss.isCharging) {
         const step = (boss.chargeSpeed || 17) * frameScale;
@@ -1159,16 +1268,16 @@
           game.damagePlayer(Math.ceil(boss.damage * 1.2));
         }
         const minX = boss.radius;
-        const maxX = CANVAS_WIDTH - boss.radius;
+        const maxX = WORLD_WIDTH - boss.radius;
         const minY = boss.radius;
-        const maxY = CANVAS_HEIGHT - boss.radius;
+        const maxY = WORLD_HEIGHT - boss.radius;
         if (boss.x <= minX || boss.x >= maxX || boss.y <= minY || boss.y >= maxY || (boss.chargeDistanceLeft || 0) <= 0) {
           boss.x = game.clamp(boss.x, minX, maxX);
           boss.y = game.clamp(boss.y, minY, maxY);
           boss.isCharging = false;
         }
       }
-    });
+    }
   }
 
   // src/game/systems/flowSystem.ts
@@ -1192,7 +1301,7 @@
     game.lastHordeSpawn = 0;
     game.healthDropsThisLevel = 0;
     game.ui.updateLevel(`第${game.currentLevel}关`);
-    game.ui.updateKills(game.kills, LEVEL_CONFIG[game.currentLevel].killTarget);
+    game.ui.updateScore(game.score);
     game.showLevelNotice(`第${game.currentLevel}关`);
   }
   function resetGameState(game) {
@@ -1200,6 +1309,7 @@
     game.currentLevel = 1;
     game.levelProgress = 0;
     game.kills = 0;
+    game.score = 0;
     game.isPaused = false;
     game.isBossActive = false;
     game.levelComplete = false;
@@ -1222,8 +1332,8 @@
     game.mines = [];
     game.explosions = [];
     game.bossBombs = [];
-    game.player.x = CANVAS_WIDTH / 2;
-    game.player.y = CANVAS_HEIGHT / 2;
+    game.player.x = WORLD_WIDTH / 2;
+    game.player.y = WORLD_HEIGHT / 2;
     game.player.health = 10;
     game.player.maxHealth = 10;
     game.player.invincible = 0;
@@ -1235,7 +1345,7 @@
     game.lastEnemySpawn = 0;
     game.lastHordeSpawn = 0;
     game.healthDropsThisLevel = 0;
-    game.ui.updateKills(0, LEVEL_CONFIG[1].killTarget);
+    game.ui.updateScore(0);
     game.ui.updateLevel("第1关");
     game.updateHealthUI();
     game.updateExpUI();
@@ -1275,6 +1385,7 @@
         y: game.player.y,
         vx: Math.cos(angle) * 10,
         vy: Math.sin(angle) * 10,
+        angle,
         radius: 4,
         color: isCrit ? "#FF0000" : "#FFD700",
         damage: baseDamage,
@@ -1316,8 +1427,8 @@
     game.playerMoveVY = dy * speed;
     game.player.x += game.playerMoveVX;
     game.player.y += game.playerMoveVY;
-    game.player.x = game.clamp(game.player.x, game.player.radius, CANVAS_WIDTH - game.player.radius);
-    game.player.y = game.clamp(game.player.y, game.player.radius, CANVAS_HEIGHT - game.player.radius);
+    game.player.x = game.clamp(game.player.x, game.player.radius, WORLD_WIDTH - game.player.radius);
+    game.player.y = game.clamp(game.player.y, game.player.radius, WORLD_HEIGHT - game.player.radius);
     if (game.isTouchDevice) {
       const target = findNearestEnemy(game.enemies, game.player.x, game.player.y);
       if (target) {
@@ -1339,7 +1450,7 @@
       const bullet = game.bullets[i];
       bullet.x += bullet.vx;
       bullet.y += bullet.vy;
-      if (bullet.x < 0 || bullet.x > CANVAS_WIDTH || bullet.y < 0 || bullet.y > CANVAS_HEIGHT) {
+      if (bullet.x < 0 || bullet.x > WORLD_WIDTH || bullet.y < 0 || bullet.y > WORLD_HEIGHT) {
         game.bullets.splice(i, 1);
       }
     }
@@ -1366,7 +1477,7 @@
       }
       bullet.x += bullet.vx;
       bullet.y += bullet.vy;
-      if (bullet.x < -50 || bullet.x > CANVAS_WIDTH + 50 || bullet.y < -50 || bullet.y > CANVAS_HEIGHT + 50) {
+      if (bullet.x < -50 || bullet.x > WORLD_WIDTH + 50 || bullet.y < -50 || bullet.y > WORLD_HEIGHT + 50) {
         if (bullet.life === void 0) {
           game.enemyBullets.splice(i, 1);
         }
@@ -1407,6 +1518,77 @@
   }
 
   // src/game/systems/renderSystem.ts
+  var bgRuntime = {
+    host: null,
+    baseA: null,
+    baseB: null,
+    starsA: null,
+    starsB: null,
+    baseTex: null,
+    starsTex: null,
+    lastTick: 0,
+    baseScrollA: 0,
+    baseScrollB: -CANVAS_HEIGHT,
+    scrollA: 0,
+    scrollB: -CANVAS_HEIGHT,
+    texW: 0,
+    texH: 0
+  };
+  function getBackgroundTexSize() {
+    const stageW = Laya.stage && Laya.stage.width || CANVAS_WIDTH;
+    const stageH = Laya.stage && Laya.stage.height || CANVAS_HEIGHT;
+    const w = Math.ceil(Math.max(CANVAS_WIDTH, stageW) * 1.8);
+    const h = Math.ceil(Math.max(CANVAS_HEIGHT, stageH) * 2.2);
+    return { w, h };
+  }
+  function createTexture(width, height, painter) {
+    const canvas = Laya.Browser.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) {
+      return new Laya.Texture(Laya.Texture2D.whiteTexture);
+    }
+    painter(ctx);
+    const tex2D = new Laya.Texture2D(width, height, Laya.TextureFormat.R8G8B8A8, false, false);
+    tex2D.setImageData(canvas, false, false);
+    return new Laya.Texture(tex2D);
+  }
+  function ensureBackgroundTextures(texW, texH) {
+    if (bgRuntime.baseTex && bgRuntime.starsTex && bgRuntime.texW === texW && bgRuntime.texH === texH) {
+      return;
+    }
+    bgRuntime.baseTex = createTexture(texW, texH, (ctx) => {
+      const grad = ctx.createLinearGradient(0, 0, 0, texH);
+      grad.addColorStop(0, "#050818");
+      grad.addColorStop(1, "#02030B");
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, texW, texH);
+      ctx.globalCompositeOperation = "lighter";
+      for (let i = 0; i < 10; i++) {
+        const alpha = Math.max(0, 0.08 - i * 6e-3);
+        ctx.fillStyle = `rgba(45,95,180,${alpha})`;
+        ctx.beginPath();
+        ctx.arc(texW * 0.5, texH * 0.25, 260 + i * 52, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.globalCompositeOperation = "source-over";
+    });
+    bgRuntime.starsTex = createTexture(texW, texH, (ctx) => {
+      const baseArea = CANVAS_WIDTH * CANVAS_HEIGHT;
+      const count = Math.min(520, Math.floor(220 * (texW * texH) / Math.max(1, baseArea)));
+      for (let i = 0; i < count; i++) {
+        const x = Math.random() * texW;
+        const y = Math.random() * texH;
+        const size = Math.random() < 0.82 ? 0.8 + Math.random() * 1.1 : 1.9 + Math.random() * 1.2;
+        const a = 0.28 + Math.random() * 0.6;
+        ctx.fillStyle = `rgba(255,255,255,${a})`;
+        ctx.fillRect(x, y, size, size);
+      }
+    });
+    bgRuntime.texW = texW;
+    bgRuntime.texH = texH;
+  }
   function drawRotatedRect(g, x, y, length, width, angle, fill, stroke, lineWidth = 2) {
     const halfW = width / 2;
     const local = [
@@ -1430,9 +1612,10 @@
     g.drawPoly(0, 0, points, fill, stroke, lineWidth);
   }
   function drawBossTelegraph(game, g, timestamp) {
-    game.enemies.forEach((boss) => {
+    for (let i = 0; i < game.enemies.length; i++) {
+      const boss = game.enemies[i];
       if (!boss.isBoss) {
-        return;
+        continue;
       }
       if (boss.isPreparingStomp && boss.stompTarget) {
         const progress = 1 - (boss.stompTimer || 0) / Math.max(1, boss.stompDuration || 1500);
@@ -1450,27 +1633,110 @@
         const alpha = boss.isCharging ? 0.12 : 0.26 + Math.sin(timestamp / 65) * 0.05;
         drawRotatedRect(g, boss.x, boss.y, length, width, boss.chargeAngle || 0, `rgba(255,0,0,${alpha})`, "rgba(255,110,110,0.95)", 2);
       }
-    });
-    game.bossBombs.forEach((bomb) => {
+    }
+    for (let i = 0; i < game.bossBombs.length; i++) {
+      const bomb = game.bossBombs[i];
       const blinkFast = bomb.timer < 700;
       const blink = blinkFast ? Math.floor(bomb.timer / 80) % 2 === 0 : Math.floor(bomb.timer / 150) % 2 === 0;
       const fill = blink ? "rgba(255,60,60,0.9)" : "rgba(180,40,40,0.8)";
       g.drawCircle(bomb.x, bomb.y, bomb.radius, fill);
       g.drawCircle(bomb.x, bomb.y, bomb.blastRadius, null, "rgba(255,70,70,0.85)", 2);
-    });
+    }
   }
-  function drawSpaceBackground(game, g, timestamp) {
-    g.drawRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT, "#040510");
-    for (let i = 0; i < 10; i++) {
-      const alpha = 0.07 - i * 5e-3;
-      g.drawCircle(CANVAS_WIDTH * 0.5, CANVAS_HEIGHT * 0.25, 260 + i * 50, `rgba(30,60,120,${Math.max(0, alpha)})`);
+  function ensureBackgroundSprites(game) {
+    const texSize = getBackgroundTexSize();
+    if (bgRuntime.host === game.background && bgRuntime.baseA && bgRuntime.baseB && bgRuntime.starsA && bgRuntime.starsB && bgRuntime.texW === texSize.w && bgRuntime.texH === texSize.h) {
+      return;
     }
-    for (const star of game.stars) {
-      const driftY = timestamp * star.speed % CANVAS_HEIGHT;
-      const y = (star.y + driftY) % CANVAS_HEIGHT;
-      const twinkle = 0.45 + Math.sin(timestamp * 3e-3 + star.twinkle) * 0.35;
-      g.drawCircle(star.x, y, star.size, `rgba(255,255,255,${Math.max(0.15, twinkle)})`);
+    ensureBackgroundTextures(texSize.w, texSize.h);
+    if (!bgRuntime.baseTex || !bgRuntime.starsTex) {
+      return;
     }
+    game.background.graphics.clear();
+    game.background.removeChildren();
+    const baseA = new Laya.Sprite();
+    baseA.texture = bgRuntime.baseTex;
+    baseA.pos(0, 0);
+    baseA.mouseEnabled = false;
+    const baseB = new Laya.Sprite();
+    baseB.texture = bgRuntime.baseTex;
+    baseB.pos(0, -bgRuntime.texH);
+    baseB.mouseEnabled = false;
+    const starsA = new Laya.Sprite();
+    starsA.texture = bgRuntime.starsTex;
+    starsA.pos(0, 0);
+    starsA.alpha = 0.82;
+    starsA.mouseEnabled = false;
+    const starsB = new Laya.Sprite();
+    starsB.texture = bgRuntime.starsTex;
+    starsB.pos(0, -bgRuntime.texH);
+    starsB.alpha = 0.7;
+    starsB.mouseEnabled = false;
+    game.background.addChild(baseA);
+    game.background.addChild(baseB);
+    game.background.addChild(starsA);
+    game.background.addChild(starsB);
+    bgRuntime.host = game.background;
+    bgRuntime.baseA = baseA;
+    bgRuntime.baseB = baseB;
+    bgRuntime.starsA = starsA;
+    bgRuntime.starsB = starsB;
+    bgRuntime.lastTick = 0;
+    bgRuntime.baseScrollA = 0;
+    bgRuntime.baseScrollB = -bgRuntime.texH;
+    bgRuntime.scrollA = 0;
+    bgRuntime.scrollB = -bgRuntime.texH;
+  }
+  function renderBackgroundLayer(game, timestamp) {
+    ensureBackgroundSprites(game);
+    if (!bgRuntime.starsA || !bgRuntime.starsB) {
+      return;
+    }
+    const refreshInterval = game.severePerformanceMode ? 66 : game.lowPerformanceMode ? 33 : 16;
+    if (timestamp - game.lastBackgroundRenderTime < refreshInterval) {
+      return;
+    }
+    const dt = bgRuntime.lastTick > 0 ? timestamp - bgRuntime.lastTick : refreshInterval;
+    bgRuntime.lastTick = timestamp;
+    game.lastBackgroundRenderTime = timestamp;
+    const speed = game.severePerformanceMode ? 0.018 : game.lowPerformanceMode ? 0.026 : 0.036;
+    const drift = dt * speed;
+    const baseDrift = drift * 0.42;
+    bgRuntime.baseScrollA += baseDrift;
+    bgRuntime.baseScrollB += baseDrift;
+    const tileH = Math.max(CANVAS_HEIGHT, bgRuntime.texH || CANVAS_HEIGHT);
+    if (bgRuntime.baseScrollA >= tileH) {
+      bgRuntime.baseScrollA = bgRuntime.baseScrollB - tileH;
+    }
+    if (bgRuntime.baseScrollB >= tileH) {
+      bgRuntime.baseScrollB = bgRuntime.baseScrollA - tileH;
+    }
+    bgRuntime.scrollA += drift;
+    bgRuntime.scrollB += drift;
+    if (bgRuntime.scrollA >= tileH) {
+      bgRuntime.scrollA = bgRuntime.scrollB - tileH;
+    }
+    if (bgRuntime.scrollB >= tileH) {
+      bgRuntime.scrollB = bgRuntime.scrollA - tileH;
+    }
+    const camX = game.cameraX || 0;
+    const camY = game.cameraY || 0;
+    const baseRangeX = Math.max(0, (bgRuntime.texW || CANVAS_WIDTH) - CANVAS_WIDTH);
+    const starRangeX = Math.max(0, (bgRuntime.texW || CANVAS_WIDTH) - CANVAS_WIDTH);
+    const basePx = baseRangeX > 0 ? -(camX * 0.12 % baseRangeX) : 0;
+    const basePy = -camY * 0.12;
+    const starPx = starRangeX > 0 ? -(camX * 0.16 % starRangeX) : 0;
+    const starPy = -camY * 0.16;
+    if (bgRuntime.baseA && bgRuntime.baseB) {
+      bgRuntime.baseA.pos(basePx, bgRuntime.baseScrollA + basePy);
+      bgRuntime.baseB.pos(basePx, bgRuntime.baseScrollB + basePy);
+    }
+    bgRuntime.starsA.pos(starPx, bgRuntime.scrollA + starPy);
+    bgRuntime.starsB.pos(starPx, bgRuntime.scrollB + starPy);
+    const pulseA = 0.76 + Math.sin(timestamp * 16e-4) * 0.12;
+    const pulseB = 0.64 + Math.cos(timestamp * 12e-4) * 0.1;
+    bgRuntime.starsA.alpha = pulseA;
+    bgRuntime.starsB.alpha = pulseB;
   }
   function drawBossBody(g, boss, timestamp) {
     const pulse = 0.85 + Math.sin(timestamp * 0.01) * 0.12;
@@ -1479,15 +1745,28 @@
       return;
     }
     if (boss.name.indexOf("狂怒") >= 0) {
-      g.drawCircle(boss.x, boss.y, boss.radius, "#8B0000");
-      g.drawCircle(boss.x, boss.y, boss.radius * 0.7, "#F44336");
-      for (let i = 0; i < 8; i++) {
-        const angle = Math.PI * 2 / 8 * i + timestamp * 1e-3;
+      g.drawCircle(boss.x, boss.y, boss.radius, "#7A0000");
+      g.drawCircle(boss.x, boss.y, boss.radius * 0.68, "#F44336");
+      for (let i = 0; i < 2; i++) {
+        const side = i === 0 ? 1 : -1;
+        const hornBaseX = boss.x + side * boss.radius * 0.45;
+        const hornBaseY = boss.y - boss.radius * 0.55;
+        g.drawPoly(0, 0, [
+          hornBaseX,
+          hornBaseY,
+          hornBaseX + side * boss.radius * 0.55,
+          hornBaseY - boss.radius * 0.35,
+          hornBaseX + side * boss.radius * 0.08,
+          hornBaseY + boss.radius * 0.18
+        ], "#FFD54F", "#FFF8E1", 2);
+      }
+      for (let i = 0; i < 6; i++) {
+        const angle = Math.PI * 2 / 6 * i + timestamp * 12e-4;
         g.drawLine(
           boss.x + Math.cos(angle) * boss.radius * 0.8,
           boss.y + Math.sin(angle) * boss.radius * 0.8,
-          boss.x + Math.cos(angle) * boss.radius * 1.25,
-          boss.y + Math.sin(angle) * boss.radius * 1.25,
+          boss.x + Math.cos(angle) * boss.radius * 1.16,
+          boss.y + Math.sin(angle) * boss.radius * 1.16,
           "#FF8A80",
           3
         );
@@ -1495,82 +1774,59 @@
       return;
     }
     if (boss.name.indexOf("终焉") >= 0) {
-      g.drawCircle(boss.x, boss.y, boss.radius * 1.15, "rgba(20,20,20,0.92)");
-      g.drawCircle(boss.x, boss.y, boss.radius * 0.62, "#5C6BC0");
-      g.drawCircle(boss.x, boss.y, boss.radius * (0.9 + 0.06 * pulse), null, "rgba(200,200,255,0.6)", 3);
-      drawRotatedRect(g, boss.x, boss.y, boss.radius * 1.6, boss.radius * 0.42, timestamp * 25e-4, "rgba(124,77,255,0.26)", "rgba(179,157,219,0.85)", 2);
+      g.drawCircle(boss.x, boss.y, boss.radius * 1.2, "rgba(18,24,45,0.96)");
+      g.drawCircle(boss.x, boss.y, boss.radius * 1.02, "rgba(39,59,105,0.68)");
+      g.drawCircle(boss.x, boss.y, boss.radius * 0.64, "#607D8B");
+      g.drawCircle(boss.x, boss.y, boss.radius * (0.88 + 0.06 * pulse), null, "rgba(220,235,255,0.68)", 3);
+      drawRotatedRect(g, boss.x, boss.y, boss.radius * 1.7, boss.radius * 0.38, timestamp * 25e-4, "rgba(141,110,255,0.25)", "rgba(209,196,233,0.82)", 2);
       return;
     }
     if (boss.name.indexOf("飞天") >= 0) {
       g.drawCircle(boss.x, boss.y, boss.radius * 0.82, "#8D6E63");
-      g.drawEllipse(boss.x - boss.radius * 1.3, boss.y - boss.radius * 0.5, boss.radius * 1.2, boss.radius * 0.8, "rgba(255,193,7,0.55)", "rgba(255,245,157,0.8)", 1);
-      g.drawEllipse(boss.x + boss.radius * 0.1, boss.y - boss.radius * 0.5, boss.radius * 1.2, boss.radius * 0.8, "rgba(255,193,7,0.55)", "rgba(255,245,157,0.8)", 1);
+      g.drawCircle(boss.x - boss.radius * 0.45, boss.y + boss.radius * 0.88, boss.radius * 0.33, "#5D4037");
+      g.drawCircle(boss.x + boss.radius * 0.45, boss.y + boss.radius * 0.88, boss.radius * 0.33, "#5D4037");
+      g.drawEllipse(boss.x - boss.radius * 1.15, boss.y - boss.radius * 0.5, boss.radius * 1.05, boss.radius * 0.72, "rgba(255,193,7,0.55)", "rgba(255,245,157,0.8)", 1);
+      g.drawEllipse(boss.x + boss.radius * 0.1, boss.y - boss.radius * 0.5, boss.radius * 1.05, boss.radius * 0.72, "rgba(255,193,7,0.55)", "rgba(255,245,157,0.8)", 1);
       return;
     }
     if (boss.name.indexOf("弹幕") >= 0) {
-      g.drawCircle(boss.x, boss.y, boss.radius, "#FF7043");
-      for (let i = 0; i < 4; i++) {
-        const angle = Math.PI / 2 * i + timestamp * 9e-4;
-        g.drawRect(
-          boss.x + Math.cos(angle) * boss.radius * 0.65 - 8,
-          boss.y + Math.sin(angle) * boss.radius * 0.65 - 8,
-          16,
-          16,
-          "#FFF176"
-        );
+      g.drawCircle(boss.x, boss.y, boss.radius * 0.88, "#FF7043");
+      g.drawCircle(boss.x, boss.y, boss.radius * 0.5, "#FFD54F");
+      const spikeCount = 12;
+      for (let i = 0; i < spikeCount; i++) {
+        const angle = Math.PI * 2 / spikeCount * i + timestamp * 1e-3;
+        const baseR = boss.radius * 0.88;
+        const tipR = boss.radius * 1.28;
+        const sideR = boss.radius * 0.18;
+        const cx = Math.cos(angle);
+        const cy = Math.sin(angle);
+        const px = -cy;
+        const py = cx;
+        g.drawPoly(0, 0, [
+          boss.x + cx * baseR + px * sideR,
+          boss.y + cy * baseR + py * sideR,
+          boss.x + cx * tipR,
+          boss.y + cy * tipR,
+          boss.x + cx * baseR - px * sideR,
+          boss.y + cy * baseR - py * sideR
+        ], "#FFB74D", "#FFE082", 1);
       }
       return;
     }
     g.drawCircle(boss.x, boss.y, boss.radius, boss.color);
     g.drawCircle(boss.x, boss.y, boss.radius * (0.58 + 0.1 * pulse), "rgba(255,255,255,0.2)");
   }
-  function drawFighter(game, g, timestamp) {
-    const px = game.player.x;
-    const py = game.player.y;
-    const angle = Math.atan2(game.mouse.y - py, game.mouse.x - px);
-    const cos = Math.cos(angle);
-    const sin = Math.sin(angle);
-    const noseX = px + cos * 20;
-    const noseY = py + sin * 20;
-    const leftWingX = px + Math.cos(angle + 2.45) * 18;
-    const leftWingY = py + Math.sin(angle + 2.45) * 18;
-    const rightWingX = px + Math.cos(angle - 2.45) * 18;
-    const rightWingY = py + Math.sin(angle - 2.45) * 18;
-    const tailX = px - cos * 16;
-    const tailY = py - sin * 16;
-    g.drawPoly(0, 0, [noseX, noseY, rightWingX, rightWingY, tailX, tailY, leftWingX, leftWingY], "#90CAF9", "#E3F2FD", 2);
-    g.drawPoly(0, 0, [px + cos * 7, py + sin * 7, rightWingX, rightWingY, tailX, tailY, leftWingX, leftWingY], "#1E3A8A");
-    if (game.playerShield) {
-      g.drawCircle(px, py, game.player.radius + 7, null, "#00E5FF", 3);
-    }
-    const muzzleOn = Laya.timer.currTimer - game.lastShotTime < 95;
-    if (muzzleOn) {
-      const flameLen = 22 + Math.sin(timestamp * 0.08) * 5;
-      drawRotatedRect(g, noseX + cos * 4, noseY + sin * 4, flameLen, 8, angle, "rgba(255,180,40,0.7)", "rgba(255,235,120,0.85)", 1);
-    }
-    const moveSpeed = Math.sqrt(game.playerMoveVX * game.playerMoveVX + game.playerMoveVY * game.playerMoveVY);
-    if (moveSpeed > 0.35) {
-      const trailLen = 20 + moveSpeed * 2 + Math.sin(timestamp * 0.05) * 4;
-      drawRotatedRect(g, tailX, tailY, trailLen, 10, angle + Math.PI, "rgba(255,90,40,0.55)", "rgba(255,190,90,0.8)", 1);
-    }
-  }
-  function drawPlayerBullets(g, bullets) {
-    bullets.forEach((bullet) => {
-      const angle = Math.atan2(bullet.vy, bullet.vx);
-      drawRotatedRect(g, bullet.x, bullet.y, 16, 4, angle, bullet.color, "#FFF8E1", 1);
-    });
-  }
-  function renderWorld(game, deltaTime) {
-    const g = game.world.graphics;
+  function renderWorld(game, _deltaTime) {
     const timestamp = Laya.timer.currTimer;
+    renderBackgroundLayer(game, timestamp);
+    const g = game.world.graphics;
     g.clear();
-    drawSpaceBackground(game, g, timestamp);
     if (game.gameState === "GAME_OVER") {
       g.drawRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT, "rgba(0,0,0,0.8)");
       g.fillText("游戏结束", CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 80, "bold 48px Arial", "#FFFFFF", "center");
-      g.fillText(`最终击杀: ${game.kills} | 到达: 第${game.currentLevel}关`, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 20, "24px Arial", "#FFFFFF", "center");
-      g.drawRect(CANVAS_WIDTH / 2 - 100, CANVAS_HEIGHT / 2 + 20, 200, 60, "#4CAF50");
-      g.fillText("重新开始", CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 58, "bold 24px Arial", "#FFFFFF", "center");
+      g.fillText(`最终积分: ${game.score} | 击杀: ${game.kills} | 到达: 第${game.currentLevel}关`, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 20, "24px Arial", "#FFFFFF", "center");
+      g.drawRoundRect(CANVAS_WIDTH / 2 - 100, CANVAS_HEIGHT / 2 + 20, 200, 60, 12, 12, 12, 12, "#4CAF50");
+      g.fillText("重新开始", CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 36, "bold 24px Arial", "#FFFFFF", "center");
       return;
     }
     if (game.gameState === "CLEAR") {
@@ -1578,58 +1834,17 @@
       g.fillText("恭喜通关！", CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 40, "bold 48px Arial", "#FFD700", "center");
       return;
     }
-    for (let i = game.explosions.length - 1; i >= 0; i--) {
-      const exp = game.explosions[i];
-      exp.radius += exp.growth || 5;
-      exp.alpha -= exp.fade || 0.05;
-      if (exp.alpha <= 0 || exp.radius >= (exp.maxRadius || 9999)) {
-        game.explosions.splice(i, 1);
-        continue;
-      }
-      if (exp.ring) {
-        g.drawCircle(exp.x, exp.y, exp.radius, null, `rgba(${exp.color || "255,100,0"},${exp.alpha})`, exp.lineWidth || 3);
-      } else {
-        g.drawCircle(exp.x, exp.y, exp.radius, `rgba(${exp.color || "255,100,0"},${exp.alpha})`);
-      }
-    }
     if (game.player.skills.THORN_AURA) {
       const range = 100 + (game.player.skills.THORN_AURA.level - 1) * 20;
       g.drawCircle(game.player.x, game.player.y, range, null, "rgba(120,80,220,0.5)", 2);
     }
-    game.mines.forEach((mine) => {
-      const fill = mine.timer < 1e3 ? Math.floor(mine.timer / 100) % 2 === 0 ? "#FF0000" : "#FF5722" : mine.color;
-      g.drawCircle(mine.x, mine.y, mine.radius, fill);
-      g.drawCircle(mine.x, mine.y, mine.radius + 3, null, "#FFFFFF", 1);
-    });
-    game.turrets.forEach((turret) => {
-      g.drawCircle(turret.x, turret.y, turret.radius, "#4CAF50");
-      g.drawCircle(turret.x, turret.y, turret.radius * 0.5, "#B2FF59");
-    });
-    game.expOrbs.forEach((orb) => {
-      g.drawCircle(orb.x, orb.y, orb.radius + 1, "#64B5F6");
-      g.drawCircle(orb.x, orb.y, orb.radius * 0.5, "#E3F2FD");
-    });
-    game.drops.forEach((drop) => {
-      if (drop.life !== void 0) {
-        drop.life -= deltaTime;
-        if (drop.life < 2e3 && Math.floor(drop.life / 100) % 2 === 0) {
-          return;
-        }
-      }
-      g.drawRect(drop.x - 10, drop.y - 10, 20, 20, "#E91E63");
-      g.drawRect(drop.x - 6, drop.y - 2, 12, 4, "#FFFFFF");
-      g.drawRect(drop.x - 2, drop.y - 6, 4, 12, "#FFFFFF");
-    });
     drawBossTelegraph(game, g, timestamp);
-    game.enemies.forEach((enemy) => {
-      if (enemy.isBoss) {
-        drawBossBody(g, enemy, timestamp);
-      } else {
-        g.drawCircle(enemy.x, enemy.y, enemy.radius, enemy.isHorde ? "#FF8A80" : enemy.color);
-        if (enemy.isHorde) {
-          g.drawCircle(enemy.x, enemy.y, enemy.radius * 0.4, "#FFF3E0");
-        }
+    for (let i = 0; i < game.enemies.length; i++) {
+      const enemy = game.enemies[i];
+      if (!enemy.isBoss) {
+        continue;
       }
+      drawBossBody(g, enemy, timestamp);
       if (enemy.health < enemy.maxHealth) {
         const barWidth = enemy.radius * 2;
         g.drawRect(enemy.x - barWidth / 2, enemy.y - enemy.radius - 10, barWidth, 4, "#555555");
@@ -1638,13 +1853,603 @@
       if (enemy.isBoss && enemy.name) {
         g.fillText(enemy.name, enemy.x, enemy.y - enemy.radius - 20, "14px Arial", "#FFFFFF", "center");
       }
-    });
-    drawPlayerBullets(g, game.bullets);
-    game.enemyBullets.forEach((bullet) => {
-      g.drawCircle(bullet.x, bullet.y, bullet.radius, bullet.color);
-    });
-    if (!(game.player.invincible > 0 && Math.floor(game.player.invincible / 3) % 2 === 0)) {
-      drawFighter(game, g, timestamp);
+    }
+  }
+
+  // src/game/systems/spriteEntityRenderSystem.ts
+  var TEX_URL = {
+    playerBullet: "resources/gamefx/player_bullet.png",
+    enemyBullet: "resources/gamefx/enemy_bullet.png",
+    enemyNormal: "resources/gamefx/enemy_normal.png",
+    enemyRanged: "resources/gamefx/enemy_ranged.png",
+    enemyElite: "resources/gamefx/enemy_elite.png",
+    enemySuicide: "resources/gamefx/enemy_suicide.png",
+    enemyHorde: "resources/gamefx/enemy_horde.png",
+    expOrb: "resources/gamefx/exp_orb.png",
+    drop: "resources/gamefx/drop_pack.png",
+    mine: "resources/gamefx/mine.png",
+    turret: "resources/gamefx/turret.png"
+  };
+  var state = {
+    layer: null,
+    worldLayer: null,
+    actorLayer: null,
+    fxLayer: null,
+    enemyBulletLayer: null,
+    playerBulletLayer: null,
+    playerOverlayLayer: null,
+    playerShipSprite: null,
+    playerShieldSprite: null,
+    playerMuzzleSprite: null,
+    playerTrailSprite: null,
+    textures: null,
+    loadingStarted: false,
+    loadedFromFiles: false,
+    pools: {
+      playerBullets: [],
+      enemyBullets: [],
+      enemies: [],
+      expOrbs: [],
+      drops: [],
+      mines: [],
+      turrets: [],
+      explosions: []
+    }
+  };
+  function createTexture2(width, height, painter) {
+    const canvas = Laya.Browser.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) {
+      return new Laya.Texture(Laya.Texture2D.whiteTexture);
+    }
+    painter(ctx);
+    const tex2D = new Laya.Texture2D(width, height, Laya.TextureFormat.R8G8B8A8, false, false);
+    tex2D.setImageData(canvas, false, false);
+    return new Laya.Texture(tex2D);
+  }
+  function drawEnemyTex(ctx, core, ring) {
+    ctx.fillStyle = core;
+    ctx.beginPath();
+    ctx.arc(14, 14, 12, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = ring;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+  function buildFallbackTextures() {
+    return {
+      playerBullet: createTexture2(20, 8, (ctx) => {
+        const grad = ctx.createLinearGradient(0, 0, 20, 0);
+        grad.addColorStop(0, "#FFF8E1");
+        grad.addColorStop(0.6, "#FFD54F");
+        grad.addColorStop(1, "#FF6F00");
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.moveTo(1, 4);
+        ctx.lineTo(15, 1);
+        ctx.lineTo(19, 4);
+        ctx.lineTo(15, 7);
+        ctx.closePath();
+        ctx.fill();
+      }),
+      enemyBullet: createTexture2(14, 14, (ctx) => {
+        const grad = ctx.createRadialGradient(7, 7, 1, 7, 7, 7);
+        grad.addColorStop(0, "#FFF8E1");
+        grad.addColorStop(0.45, "#FF8A65");
+        grad.addColorStop(1, "#E53935");
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(7, 7, 6, 0, Math.PI * 2);
+        ctx.fill();
+      }),
+      enemyNormal: createTexture2(28, 28, (ctx) => drawEnemyTex(ctx, "#F44336", "#FFCDD2")),
+      enemyRanged: createTexture2(28, 28, (ctx) => drawEnemyTex(ctx, "#FF9800", "#FFE0B2")),
+      enemyElite: createTexture2(28, 28, (ctx) => drawEnemyTex(ctx, "#9C27B0", "#E1BEE7")),
+      enemySuicide: createTexture2(28, 28, (ctx) => drawEnemyTex(ctx, "#FFEB3B", "#FFF9C4")),
+      enemyHorde: createTexture2(28, 28, (ctx) => drawEnemyTex(ctx, "#FF8A80", "#FFEBEE")),
+      expOrb: createTexture2(14, 14, (ctx) => {
+        const grad = ctx.createRadialGradient(7, 7, 1, 7, 7, 7);
+        grad.addColorStop(0, "#E3F2FD");
+        grad.addColorStop(0.5, "#64B5F6");
+        grad.addColorStop(1, "#1E88E5");
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(7, 7, 7, 0, Math.PI * 2);
+        ctx.fill();
+      }),
+      drop: createTexture2(24, 24, (ctx) => {
+        ctx.fillStyle = "#E91E63";
+        ctx.fillRect(2, 2, 20, 20);
+        ctx.fillStyle = "#FFFFFF";
+        ctx.fillRect(10, 5, 4, 14);
+        ctx.fillRect(5, 10, 14, 4);
+      }),
+      mine: createTexture2(20, 20, (ctx) => {
+        ctx.fillStyle = "#FF5722";
+        ctx.beginPath();
+        ctx.arc(10, 10, 9, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = "#FFFFFF";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }),
+      turret: createTexture2(44, 44, (ctx) => {
+        ctx.fillStyle = "#4CAF50";
+        ctx.beginPath();
+        ctx.arc(22, 22, 20, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#C8E6C9";
+        ctx.beginPath();
+        ctx.arc(22, 22, 8, 0, Math.PI * 2);
+        ctx.fill();
+      }),
+      playerShip: createTexture2(80, 80, (ctx) => {
+        ctx.translate(40, 40);
+        const grad = ctx.createLinearGradient(-26, 0, 26, 0);
+        grad.addColorStop(0, "#9EC8FF");
+        grad.addColorStop(0.7, "#E8F2FF");
+        grad.addColorStop(1, "#8EB9FF");
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.moveTo(30, 0);
+        ctx.lineTo(-12, 17);
+        ctx.lineTo(-24, 10);
+        ctx.lineTo(-30, 0);
+        ctx.lineTo(-24, -10);
+        ctx.lineTo(-12, -17);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = "#FFFFFF";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.fillStyle = "#244A9C";
+        ctx.beginPath();
+        ctx.moveTo(14, 0);
+        ctx.lineTo(-9, 8);
+        ctx.lineTo(-18, 0);
+        ctx.lineTo(-9, -8);
+        ctx.closePath();
+        ctx.fill();
+      }),
+      playerShield: createTexture2(96, 96, (ctx) => {
+        const grad = ctx.createRadialGradient(48, 48, 18, 48, 48, 46);
+        grad.addColorStop(0, "rgba(120,240,255,0.1)");
+        grad.addColorStop(0.65, "rgba(0,220,255,0.15)");
+        grad.addColorStop(1, "rgba(0,229,255,0.35)");
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(48, 48, 44, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = "rgba(173,255,255,0.92)";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(48, 48, 41, 0, Math.PI * 2);
+        ctx.stroke();
+      }),
+      playerMuzzle: createTexture2(48, 20, (ctx) => {
+        const grad = ctx.createLinearGradient(0, 10, 48, 10);
+        grad.addColorStop(0, "rgba(255,240,120,0.25)");
+        grad.addColorStop(0.7, "rgba(255,190,60,0.8)");
+        grad.addColorStop(1, "rgba(255,120,40,0)");
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.moveTo(2, 10);
+        ctx.lineTo(20, 2);
+        ctx.lineTo(46, 10);
+        ctx.lineTo(20, 18);
+        ctx.closePath();
+        ctx.fill();
+      }),
+      playerTrail: createTexture2(56, 22, (ctx) => {
+        const grad = ctx.createLinearGradient(0, 11, 56, 11);
+        grad.addColorStop(0, "rgba(255,190,90,0)");
+        grad.addColorStop(0.5, "rgba(255,120,40,0.55)");
+        grad.addColorStop(1, "rgba(255,90,30,0.85)");
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.moveTo(2, 11);
+        ctx.lineTo(24, 4);
+        ctx.lineTo(54, 11);
+        ctx.lineTo(24, 18);
+        ctx.closePath();
+        ctx.fill();
+      }),
+      explosionFill: createTexture2(128, 128, (ctx) => {
+        const grad = ctx.createRadialGradient(64, 64, 8, 64, 64, 64);
+        grad.addColorStop(0, "rgba(255,240,200,1)");
+        grad.addColorStop(0.45, "rgba(255,160,70,0.92)");
+        grad.addColorStop(1, "rgba(255,80,20,0)");
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(64, 64, 62, 0, Math.PI * 2);
+        ctx.fill();
+      }),
+      explosionRing: createTexture2(128, 128, (ctx) => {
+        ctx.strokeStyle = "rgba(255,170,90,0.95)";
+        ctx.lineWidth = 10;
+        ctx.beginPath();
+        ctx.arc(64, 64, 54, 0, Math.PI * 2);
+        ctx.stroke();
+      })
+    };
+  }
+  function initLayers(layer) {
+    if (state.layer === layer && state.actorLayer && state.enemyBulletLayer && state.playerBulletLayer && state.fxLayer) {
+      return;
+    }
+    state.layer = layer;
+    state.layer.removeChildren();
+    const actorLayer = new Laya.Sprite();
+    const fxLayer = new Laya.Sprite();
+    const enemyBulletLayer = new Laya.Sprite();
+    const playerBulletLayer = new Laya.Sprite();
+    actorLayer.mouseEnabled = false;
+    fxLayer.mouseEnabled = false;
+    enemyBulletLayer.mouseEnabled = false;
+    playerBulletLayer.mouseEnabled = false;
+    layer.addChild(actorLayer);
+    layer.addChild(fxLayer);
+    layer.addChild(enemyBulletLayer);
+    layer.addChild(playerBulletLayer);
+    state.actorLayer = actorLayer;
+    state.fxLayer = fxLayer;
+    state.enemyBulletLayer = enemyBulletLayer;
+    state.playerBulletLayer = playerBulletLayer;
+  }
+  function initPlayerLayer(world) {
+    if (state.worldLayer === world && state.playerOverlayLayer && state.playerShipSprite && state.playerShieldSprite && state.playerMuzzleSprite && state.playerTrailSprite) {
+      return;
+    }
+    state.worldLayer = world;
+    if (state.playerOverlayLayer && state.playerOverlayLayer.parent) {
+      state.playerOverlayLayer.removeSelf();
+    }
+    const playerOverlayLayer = new Laya.Sprite();
+    playerOverlayLayer.mouseEnabled = false;
+    world.addChild(playerOverlayLayer);
+    state.playerOverlayLayer = playerOverlayLayer;
+    const ship = new Laya.Sprite();
+    const shield = new Laya.Sprite();
+    const muzzle = new Laya.Sprite();
+    const trail = new Laya.Sprite();
+    ship.mouseEnabled = false;
+    shield.mouseEnabled = false;
+    muzzle.mouseEnabled = false;
+    trail.mouseEnabled = false;
+    playerOverlayLayer.addChild(trail);
+    playerOverlayLayer.addChild(ship);
+    playerOverlayLayer.addChild(shield);
+    playerOverlayLayer.addChild(muzzle);
+    state.playerShipSprite = ship;
+    state.playerShieldSprite = shield;
+    state.playerMuzzleSprite = muzzle;
+    state.playerTrailSprite = trail;
+  }
+  function ensureTexturesLoaded() {
+    if (!state.textures) {
+      state.textures = buildFallbackTextures();
+    }
+    if (state.loadingStarted || state.loadedFromFiles) {
+      return;
+    }
+    state.loadingStarted = true;
+    const list = Object.keys(TEX_URL).map((k) => ({ url: TEX_URL[k], type: Laya.Loader.IMAGE }));
+    Laya.loader.load(
+      list,
+      Laya.Handler.create(null, () => {
+        if (!state.textures) {
+          state.textures = buildFallbackTextures();
+        }
+        const fallback = state.textures;
+        state.textures = {
+          playerBullet: Laya.loader.getRes(TEX_URL.playerBullet) || fallback.playerBullet,
+          enemyBullet: Laya.loader.getRes(TEX_URL.enemyBullet) || fallback.enemyBullet,
+          enemyNormal: Laya.loader.getRes(TEX_URL.enemyNormal) || fallback.enemyNormal,
+          enemyRanged: Laya.loader.getRes(TEX_URL.enemyRanged) || fallback.enemyRanged,
+          enemyElite: Laya.loader.getRes(TEX_URL.enemyElite) || fallback.enemyElite,
+          enemySuicide: Laya.loader.getRes(TEX_URL.enemySuicide) || fallback.enemySuicide,
+          enemyHorde: Laya.loader.getRes(TEX_URL.enemyHorde) || fallback.enemyHorde,
+          expOrb: Laya.loader.getRes(TEX_URL.expOrb) || fallback.expOrb,
+          drop: Laya.loader.getRes(TEX_URL.drop) || fallback.drop,
+          mine: Laya.loader.getRes(TEX_URL.mine) || fallback.mine,
+          turret: Laya.loader.getRes(TEX_URL.turret) || fallback.turret,
+          playerShip: fallback.playerShip,
+          playerShield: fallback.playerShield,
+          playerMuzzle: fallback.playerMuzzle,
+          playerTrail: fallback.playerTrail,
+          explosionFill: fallback.explosionFill,
+          explosionRing: fallback.explosionRing
+        };
+        state.loadedFromFiles = true;
+      })
+    );
+  }
+  function ensurePool(pool, need, parentLayer) {
+    if (!parentLayer) {
+      return;
+    }
+    while (pool.length < need) {
+      const sp = new Laya.Sprite();
+      sp.mouseEnabled = false;
+      sp.visible = false;
+      parentLayer.addChild(sp);
+      pool.push(sp);
+    }
+  }
+  function hideRest(pool, from) {
+    for (let i = from; i < pool.length; i++) {
+      pool[i].visible = false;
+    }
+  }
+  function applyTexture(sprite, texture) {
+    if (sprite.texture !== texture) {
+      sprite.texture = texture;
+      sprite.pivot(texture.width / 2, texture.height / 2);
+    }
+  }
+  function getEnemyTexture(enemy, tex) {
+    if (enemy.isHorde) {
+      return tex.enemyHorde;
+    }
+    if (enemy.type === "elite") {
+      return tex.enemyElite;
+    }
+    if (enemy.type === "ranged") {
+      return tex.enemyRanged;
+    }
+    if (enemy.type === "suicide") {
+      return tex.enemySuicide;
+    }
+    return tex.enemyNormal;
+  }
+  function syncPlayerBullets(ctx, tex) {
+    const pool = state.pools.playerBullets;
+    ensurePool(pool, ctx.bullets.length, state.playerBulletLayer);
+    const bw = tex.playerBullet.width || 20;
+    const bh = tex.playerBullet.height || 8;
+    for (let i = 0; i < ctx.bullets.length; i++) {
+      const bullet = ctx.bullets[i];
+      const sp = pool[i];
+      applyTexture(sp, tex.playerBullet);
+      sp.visible = true;
+      sp.pos(bullet.x, bullet.y);
+      sp.rotation = (bullet.angle || Math.atan2(bullet.vy, bullet.vx)) * 180 / Math.PI;
+      const scale = Math.max(0.75, bullet.radius / 4);
+      sp.scale(scale, scale);
+      sp.pivot(bw / 2, bh / 2);
+    }
+    hideRest(pool, ctx.bullets.length);
+  }
+  function syncEnemyBullets(ctx, tex) {
+    const pool = state.pools.enemyBullets;
+    ensurePool(pool, ctx.enemyBullets.length, state.enemyBulletLayer);
+    const bw = tex.enemyBullet.width || 14;
+    const bh = tex.enemyBullet.height || 14;
+    for (let i = 0; i < ctx.enemyBullets.length; i++) {
+      const bullet = ctx.enemyBullets[i];
+      const sp = pool[i];
+      applyTexture(sp, tex.enemyBullet);
+      sp.visible = true;
+      sp.pos(bullet.x, bullet.y);
+      sp.rotation = 0;
+      const scale = Math.max(0.55, bullet.radius * 2 / Math.max(bw, bh));
+      sp.scale(scale, scale);
+      sp.pivot(bw / 2, bh / 2);
+    }
+    hideRest(pool, ctx.enemyBullets.length);
+  }
+  function syncEnemies(ctx, tex) {
+    const pool = state.pools.enemies;
+    ensurePool(pool, ctx.enemies.length, state.actorLayer);
+    let write = 0;
+    for (let i = 0; i < ctx.enemies.length; i++) {
+      const enemy = ctx.enemies[i];
+      if (enemy.isBoss) {
+        continue;
+      }
+      const sp = pool[write];
+      applyTexture(sp, getEnemyTexture(enemy, tex));
+      sp.visible = true;
+      sp.pos(enemy.x, enemy.y);
+      const scale = Math.max(0.55, enemy.radius / 14);
+      sp.scale(scale, scale);
+      sp.rotation = 0;
+      write++;
+    }
+    hideRest(pool, write);
+  }
+  function syncExpOrbs(ctx, tex) {
+    const pool = state.pools.expOrbs;
+    ensurePool(pool, ctx.expOrbs.length, state.actorLayer);
+    for (let i = 0; i < ctx.expOrbs.length; i++) {
+      const orb = ctx.expOrbs[i];
+      const sp = pool[i];
+      applyTexture(sp, tex.expOrb);
+      sp.visible = true;
+      sp.pos(orb.x, orb.y);
+      const scale = Math.max(0.6, orb.radius / 7);
+      sp.scale(scale, scale);
+      sp.rotation = 0;
+    }
+    hideRest(pool, ctx.expOrbs.length);
+  }
+  function syncDrops(ctx, tex) {
+    const pool = state.pools.drops;
+    ensurePool(pool, ctx.drops.length, state.actorLayer);
+    let write = 0;
+    for (let i = 0; i < ctx.drops.length; i++) {
+      const drop = ctx.drops[i];
+      if (drop.life !== void 0 && drop.life < 2e3 && Math.floor(drop.life / 100) % 2 === 0) {
+        continue;
+      }
+      const sp = pool[write];
+      applyTexture(sp, tex.drop);
+      sp.visible = true;
+      sp.pos(drop.x, drop.y);
+      sp.scale(0.85, 0.85);
+      sp.rotation = 0;
+      write++;
+    }
+    hideRest(pool, write);
+  }
+  function syncMines(ctx, tex) {
+    const pool = state.pools.mines;
+    ensurePool(pool, ctx.mines.length, state.actorLayer);
+    for (let i = 0; i < ctx.mines.length; i++) {
+      const mine = ctx.mines[i];
+      const sp = pool[i];
+      applyTexture(sp, tex.mine);
+      sp.visible = true;
+      sp.pos(mine.x, mine.y);
+      sp.scale(1, 1);
+      sp.rotation = 0;
+    }
+    hideRest(pool, ctx.mines.length);
+  }
+  function syncTurrets(ctx, tex) {
+    const pool = state.pools.turrets;
+    ensurePool(pool, ctx.turrets.length, state.actorLayer);
+    for (let i = 0; i < ctx.turrets.length; i++) {
+      const turret = ctx.turrets[i];
+      const sp = pool[i];
+      applyTexture(sp, tex.turret);
+      sp.visible = true;
+      sp.pos(turret.x, turret.y);
+      sp.scale(Math.max(0.7, turret.radius / 20), Math.max(0.7, turret.radius / 20));
+      sp.rotation = 0;
+    }
+    hideRest(pool, ctx.turrets.length);
+  }
+  function syncExplosions(ctx, tex) {
+    const pool = state.pools.explosions;
+    const budget = ctx.severePerformanceMode ? 24 : ctx.lowPerformanceMode ? 40 : 64;
+    ensurePool(pool, budget, state.fxLayer);
+    let write = 0;
+    for (let i = ctx.explosions.length - 1; i >= 0; i--) {
+      if (write >= budget) {
+        break;
+      }
+      const exp = ctx.explosions[i];
+      const sp = pool[write];
+      const texture = exp.ring ? tex.explosionRing : tex.explosionFill;
+      applyTexture(sp, texture);
+      sp.visible = true;
+      sp.pos(exp.x, exp.y);
+      const baseRadius = Math.max(1, texture.width * 0.5);
+      const scale = Math.max(0.02, exp.radius / baseRadius);
+      sp.scale(scale, scale);
+      sp.alpha = Math.max(0, exp.alpha);
+      sp.rotation = exp.ring ? (Laya.timer.currTimer * 0.08 + write * 17) % 360 : 0;
+      write++;
+    }
+    hideRest(pool, write);
+  }
+  function syncPlayer(ctx, tex) {
+    const ship = state.playerShipSprite;
+    const shield = state.playerShieldSprite;
+    const muzzle = state.playerMuzzleSprite;
+    const trail = state.playerTrailSprite;
+    if (!ship || !shield || !muzzle || !trail) {
+      return;
+    }
+    applyTexture(ship, tex.playerShip);
+    applyTexture(shield, tex.playerShield);
+    applyTexture(muzzle, tex.playerMuzzle);
+    applyTexture(trail, tex.playerTrail);
+    if (ctx.gameState !== "PLAYING" || ctx.player.invincible > 0 && Math.floor(ctx.player.invincible / 3) % 2 === 0) {
+      ship.visible = false;
+      shield.visible = false;
+      muzzle.visible = false;
+      trail.visible = false;
+      return;
+    }
+    const px = ctx.player.x;
+    const py = ctx.player.y;
+    const angle = Math.atan2(ctx.mouse.y - py, ctx.mouse.x - px);
+    const rotation = angle * 180 / Math.PI;
+    const shipScale = Math.max(0.75, ctx.player.radius / 18);
+    ship.visible = true;
+    ship.pos(px, py);
+    ship.scale(shipScale, shipScale);
+    ship.rotation = rotation;
+    ship.alpha = 1;
+    shield.visible = ctx.playerShield;
+    if (shield.visible) {
+      const shieldScale = Math.max(0.72, (ctx.player.radius + 7) / 44);
+      shield.pos(px, py);
+      shield.scale(shieldScale, shieldScale);
+      shield.rotation = 0;
+      shield.alpha = 0.86;
+    }
+    const cos = Math.cos(angle);
+    const sin = Math.sin(angle);
+    const muzzleOn = Laya.timer.currTimer - ctx.lastShotTime < 95;
+    muzzle.visible = muzzleOn;
+    if (muzzle.visible) {
+      muzzle.pos(px + cos * 26, py + sin * 26);
+      muzzle.scale(1, 1);
+      muzzle.rotation = rotation;
+      muzzle.alpha = 0.9;
+    }
+    const moveSpeed = Math.sqrt(ctx.playerMoveVX * ctx.playerMoveVX + ctx.playerMoveVY * ctx.playerMoveVY);
+    trail.visible = moveSpeed > 0.35;
+    if (trail.visible) {
+      const s = Math.min(1.7, 0.85 + moveSpeed * 0.12);
+      trail.pos(px - cos * 18, py - sin * 18);
+      trail.scale(s, s);
+      trail.rotation = rotation + 180;
+      trail.alpha = Math.min(1, 0.45 + moveSpeed * 0.07);
+    }
+  }
+  function renderEntitySprites(ctx) {
+    initLayers(ctx.entityLayer);
+    initPlayerLayer(ctx.world);
+    ensureTexturesLoaded();
+    const tex = state.textures;
+    if (!tex || !state.layer) {
+      return;
+    }
+    if (ctx.gameState !== "PLAYING") {
+      clearEntitySprites();
+      return;
+    }
+    syncEnemies(ctx, tex);
+    syncPlayerBullets(ctx, tex);
+    syncEnemyBullets(ctx, tex);
+    syncExpOrbs(ctx, tex);
+    syncDrops(ctx, tex);
+    syncMines(ctx, tex);
+    syncTurrets(ctx, tex);
+    syncExplosions(ctx, tex);
+    syncPlayer(ctx, tex);
+  }
+  function clearEntitySprites() {
+    if (state.playerBulletLayer) {
+      state.playerBulletLayer.graphics.clear();
+    }
+    if (state.enemyBulletLayer) {
+      state.enemyBulletLayer.graphics.clear();
+    }
+    if (state.playerShipSprite) {
+      state.playerShipSprite.visible = false;
+    }
+    if (state.playerShieldSprite) {
+      state.playerShieldSprite.visible = false;
+    }
+    if (state.playerMuzzleSprite) {
+      state.playerMuzzleSprite.visible = false;
+    }
+    if (state.playerTrailSprite) {
+      state.playerTrailSprite.visible = false;
+    }
+    const groups = state.pools;
+    for (const key in groups) {
+      const arr = groups[key];
+      for (let i = 0; i < arr.length; i++) {
+        arr[i].visible = false;
+      }
     }
   }
 
@@ -1828,6 +2633,7 @@
             y: turret.y,
             vx: Math.cos(angle) * 8,
             vy: Math.sin(angle) * 8,
+            angle,
             radius: 4,
             color: "#4CAF50",
             damage: 1,
@@ -1883,11 +2689,13 @@
   var ShootGame = class {
     constructor(stage) {
       this.keys = {};
-      this.mouse = { x: CANVAS_WIDTH / 2, y: CANVAS_HEIGHT / 2, left: false };
+      this.mouse = { x: WORLD_WIDTH / 2, y: WORLD_HEIGHT / 2, left: false };
+      this.maxSimStepsPerFrame = 3;
       this.gameState = "START";
       this.currentLevel = 1;
       this.levelProgress = 0;
       this.kills = 0;
+      this.score = 0;
       this.isPaused = false;
       this.isBossActive = false;
       this.levelComplete = false;
@@ -1913,8 +2721,16 @@
       this.lastShotTime = 0;
       this.lastMineDrop = 0;
       this.accumulator = 0;
+      this.avgFrameTime = FRAME_TIME;
+      this.lowPerformanceMode = false;
+      this.severePerformanceMode = false;
+      this.renderSkipCounter = 0;
+      this.simTick = 0;
       this.levelTransitionAt = 0;
+      this.lastBackgroundRenderTime = 0;
       this.healthDropsThisLevel = 0;
+      this.cameraX = 0;
+      this.cameraY = 0;
       this.touchMoveActive = false;
       this.joystickVector = { x: 0, y: 0 };
       this.playerMoveVX = 0;
@@ -1922,8 +2738,8 @@
       this.playerShield = false;
       this.shieldCooldown = 0;
       this.player = {
-        x: CANVAS_WIDTH / 2,
-        y: CANVAS_HEIGHT / 2,
+        x: WORLD_WIDTH / 2,
+        y: WORLD_HEIGHT / 2,
         radius: 15,
         baseSpeed: 3,
         color: "#4CAF50",
@@ -1942,6 +2758,12 @@
         this.keys[e.key.toLowerCase()] = false;
       };
       this.stage = stage;
+      this.background = new Laya.Sprite();
+      this.background.pos(0, 0);
+      stage.addChild(this.background);
+      this.entityLayer = new Laya.Sprite();
+      this.entityLayer.pos(0, 0);
+      stage.addChild(this.entityLayer);
       this.world = new Laya.Sprite();
       this.world.pos(0, 0);
       stage.addChild(this.world);
@@ -1953,7 +2775,7 @@
       this.ui.updateHealth(this.player.health, this.player.maxHealth);
       this.ui.updateExp(this.playerLevel, this.playerExp, this.expToNextLevel);
       this.ui.updateEvolution(this.player.evolution.bulletCount, this.player.evolution.fireRateBoost);
-      this.ui.updateKills(this.kills, LEVEL_CONFIG[1].killTarget);
+      this.ui.updateScore(this.score);
       this.ui.updateLevel("第1关");
       this.initTouchJoystick();
       this.bindInput();
@@ -1973,8 +2795,13 @@
         this.updateTouchMove(event.stageX, event.stageY);
         return;
       }
-      this.mouse.x = event.stageX;
-      this.mouse.y = event.stageY;
+      if (this.gameState === "PLAYING") {
+        this.mouse.x = event.stageX + this.cameraX;
+        this.mouse.y = event.stageY + this.cameraY;
+      } else {
+        this.mouse.x = event.stageX;
+        this.mouse.y = event.stageY;
+      }
     }
     onMouseDown(event) {
       if (this.isTouchDevice) {
@@ -1986,13 +2813,17 @@
           }
           return;
         }
-        if (this.gameState === "PLAYING" && event.stageX < CANVAS_WIDTH * 0.6) {
+        if (this.gameState === "PLAYING" && event.stageY > CANVAS_HEIGHT * 0.35) {
           this.beginTouchMove(event.stageX, event.stageY);
         }
         return;
       }
       if (event.button !== 0) {
         return;
+      }
+      if (this.gameState === "PLAYING") {
+        this.mouse.x = event.stageX + this.cameraX;
+        this.mouse.y = event.stageY + this.cameraY;
       }
       this.mouse.left = true;
       if (this.gameState !== "GAME_OVER") {
@@ -2016,6 +2847,8 @@
     startGame() {
       this.resetGame();
       this.lastFrameTime = Laya.timer.currTimer;
+      this.mouse.x = this.player.x;
+      this.mouse.y = this.player.y;
       this.setTouchJoystickVisible(this.isTouchDevice);
     }
     getDistance(x1, y1, x2, y2) {
@@ -2031,6 +2864,10 @@
       return Math.max(min, Math.min(max, v));
     }
     pushExplosion(exp) {
+      const explosionLimit = this.severePerformanceMode ? 20 : this.lowPerformanceMode ? 38 : MAX_EXPLOSIONS;
+      if (this.explosions.length >= explosionLimit) {
+        return;
+      }
       this.explosions.push(exp);
       if (this.explosions.length > MAX_EXPLOSIONS) {
         this.explosions.splice(0, this.explosions.length - MAX_EXPLOSIONS);
@@ -2081,6 +2918,29 @@
     updateExpOrbs() {
       updateExpOrbs(this);
     }
+    updateDrops(deltaTime) {
+      for (let i = this.drops.length - 1; i >= 0; i--) {
+        const drop = this.drops[i];
+        if (drop.life === void 0) {
+          continue;
+        }
+        drop.life -= deltaTime;
+        if (drop.life <= 0) {
+          this.drops.splice(i, 1);
+        }
+      }
+    }
+    updateExplosions(deltaTime) {
+      const stepScale = deltaTime / FRAME_TIME;
+      for (let i = this.explosions.length - 1; i >= 0; i--) {
+        const exp = this.explosions[i];
+        exp.radius += (exp.growth || 5) * stepScale;
+        exp.alpha -= (exp.fade || 0.05) * stepScale;
+        if (exp.alpha <= 0 || exp.radius >= (exp.maxRadius || 9999)) {
+          this.explosions.splice(i, 1);
+        }
+      }
+    }
     updateExpUI() {
       this.ui.updateExp(this.playerLevel, this.playerExp, this.expToNextLevel);
     }
@@ -2130,10 +2990,29 @@
       updatePlayerMovement(this, timestamp);
     }
     render(deltaTime) {
+      renderEntitySprites(this);
       renderWorld(this, deltaTime);
+    }
+    updateCamera() {
+      if (this.gameState !== "PLAYING") {
+        this.cameraX = 0;
+        this.cameraY = 0;
+        this.entityLayer.pos(0, 0);
+        this.world.pos(0, 0);
+        return;
+      }
+      const maxCamX = Math.max(0, WORLD_WIDTH - CANVAS_WIDTH);
+      const maxCamY = Math.max(0, WORLD_HEIGHT - CANVAS_HEIGHT);
+      this.cameraX = this.clamp(this.player.x - CANVAS_WIDTH * 0.5, 0, maxCamX);
+      this.cameraY = this.clamp(this.player.y - CANVAS_HEIGHT * 0.5, 0, maxCamY);
+      this.entityLayer.pos(-this.cameraX, -this.cameraY);
+      this.world.pos(-this.cameraX, -this.cameraY);
     }
     resetGame() {
       resetGameState(this);
+      this.lastBackgroundRenderTime = 0;
+      this.background.graphics.clear();
+      clearEntitySprites();
       this.endTouchMove();
       this.setTouchJoystickVisible(this.isTouchDevice && this.gameState === "PLAYING");
     }
@@ -2145,32 +3024,65 @@
       const frameTime = this.lastFrameTime > 0 ? timestamp - this.lastFrameTime : FRAME_TIME;
       this.lastFrameTime = timestamp;
       const deltaTime = Math.min(frameTime, 1e3);
+      this.avgFrameTime = this.avgFrameTime * 0.92 + deltaTime * 0.08;
+      if (!this.lowPerformanceMode && this.avgFrameTime > 20) {
+        this.lowPerformanceMode = true;
+      } else if (this.lowPerformanceMode && this.avgFrameTime < 16) {
+        this.lowPerformanceMode = false;
+      }
+      if (!this.severePerformanceMode && this.avgFrameTime > 30) {
+        this.severePerformanceMode = true;
+      } else if (this.severePerformanceMode && this.avgFrameTime < 24) {
+        this.severePerformanceMode = false;
+      }
       this.accumulator += deltaTime;
-      while (this.accumulator >= FRAME_TIME) {
+      const maxAccumulator = FRAME_TIME * this.maxSimStepsPerFrame;
+      if (this.accumulator > maxAccumulator) {
+        this.accumulator = maxAccumulator;
+      }
+      let simSteps = 0;
+      while (this.accumulator >= FRAME_TIME && simSteps < this.maxSimStepsPerFrame) {
         if (!this.isPaused && this.gameState === "PLAYING") {
           this.updatePlayer(FRAME_TIME, timestamp);
           this.spawnEnemy(timestamp);
           this.updateEnemies(FRAME_TIME, timestamp);
-          this.enemies.forEach((enemy) => {
+          for (let i = 0; i < this.enemies.length; i++) {
+            const enemy = this.enemies[i];
             if (enemy.isBoss) {
               this.updateBossSkills(enemy, timestamp);
             }
-          });
+          }
           this.updateBossStates(FRAME_TIME, timestamp);
           this.updateBossBombs(FRAME_TIME);
           this.updateSkills(FRAME_TIME, timestamp);
           this.updateMines(FRAME_TIME, timestamp);
-          this.updateExpOrbs();
+          if (!this.severePerformanceMode || (this.simTick & 1) === 0) {
+            this.updateExpOrbs();
+          }
+          this.updateDrops(FRAME_TIME);
           this.updateBullets(FRAME_TIME);
-          this.checkCollisions(timestamp);
+          if (!this.severePerformanceMode || (this.simTick & 1) === 0) {
+            this.checkCollisions(timestamp);
+          }
+          this.updateExplosions(FRAME_TIME);
         }
         this.accumulator -= FRAME_TIME;
+        this.simTick++;
+        simSteps++;
       }
       if (this.levelComplete && this.gameState === "PLAYING" && !this.isChoosingSkill && this.levelTransitionAt > 0 && timestamp >= this.levelTransitionAt) {
         this.levelTransitionAt = 0;
         this.enterNextLevel();
       }
-      this.render(deltaTime);
+      this.updateCamera();
+      if (!this.severePerformanceMode) {
+        this.render(deltaTime);
+      } else {
+        this.renderSkipCounter = (this.renderSkipCounter + 1) % 2;
+        if (this.renderSkipCounter === 0) {
+          this.render(deltaTime);
+        }
+      }
     }
     detectTouchDevice() {
       const nav = Laya.Browser.window.navigator;
@@ -2195,12 +3107,12 @@
       }
       const base = new Laya.Sprite();
       base.graphics.drawCircle(0, 0, 58, "rgba(255,255,255,0.12)", "#8FB3FF", 2);
-      base.pos(130, CANVAS_HEIGHT - 130);
+      base.pos(CANVAS_WIDTH / 2, CANVAS_HEIGHT - 130);
       base.visible = false;
       this.stage.addChild(base);
       const stick = new Laya.Sprite();
       stick.graphics.drawCircle(0, 0, 26, "rgba(173,216,255,0.8)", "#E3F2FD", 2);
-      stick.pos(130, CANVAS_HEIGHT - 130);
+      stick.pos(CANVAS_WIDTH / 2, CANVAS_HEIGHT - 130);
       stick.visible = false;
       this.stage.addChild(stick);
       this.joystickBase = base;
@@ -2216,8 +3128,8 @@
     beginTouchMove(x, y) {
       this.touchMoveActive = true;
       if (this.joystickBase && this.joystickStick) {
-        const bx = this.clamp(x, 70, CANVAS_WIDTH * 0.5);
-        const by = this.clamp(y, CANVAS_HEIGHT * 0.45, CANVAS_HEIGHT - 70);
+        const bx = this.clamp(x, CANVAS_WIDTH * 0.2, CANVAS_WIDTH * 0.8);
+        const by = this.clamp(y, CANVAS_HEIGHT * 0.55, CANVAS_HEIGHT - 70);
         this.joystickBase.pos(bx, by);
         this.joystickStick.pos(bx, by);
       }
@@ -2252,11 +3164,18 @@
   };
   function bootstrapShootGame() {
     const stage = Laya.stage;
+    const nav = Laya.Browser.window.navigator;
+    const isTouchDevice = "ontouchstart" in Laya.Browser.window || nav && nav.maxTouchPoints > 0;
+    if (isTouchDevice) {
+      setCanvasSize(MOBILE_CANVAS.width, MOBILE_CANVAS.height);
+    } else {
+      setCanvasSize(DESKTOP_CANVAS.width, DESKTOP_CANVAS.height);
+    }
     stage.width = CANVAS_WIDTH;
     stage.height = CANVAS_HEIGHT;
-    stage.scaleMode = "showall";
+    stage.scaleMode = "fixedauto";
     stage.bgColor = "#1A1A1A";
-    stage.screenMode = "none";
+    stage.screenMode = isTouchDevice ? "vertical" : "none";
     return new ShootGame(stage);
   }
 
