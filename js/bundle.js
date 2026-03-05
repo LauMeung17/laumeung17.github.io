@@ -270,16 +270,21 @@
 
   // src/game/GameUI.ts
   var GameUI = class {
-    constructor(stage) {
+    constructor(stage, isTouchDevice = false) {
       this.skillCards = [];
+      this.pauseButtonWanted = false;
+      this.stage = stage;
+      this.uiScale = isTouchDevice ? 1.5 : 1;
       this.root = new Laya.Sprite();
       stage.addChild(this.root);
       this.startScreen = this.createStartScreen();
       this.root.addChild(this.startScreen);
       const resources = this.createResourceBar();
+      this.resourceWrap = resources.wrap;
       this.staminaText = resources.staminaText;
       this.coinText = resources.coinText;
       const topPanel = this.createTopPanel();
+      this.topPanelWrap = topPanel.wrap;
       this.levelInfo = topPanel.levelInfo;
       this.scoreInfo = topPanel.scoreInfo;
       this.healthText = topPanel.healthText;
@@ -290,6 +295,7 @@
       this.skillIconsWrap.pos(CANVAS_WIDTH - 230, 20);
       this.root.addChild(this.skillIconsWrap);
       const evolution = this.createEvolutionPanel();
+      this.evolutionPanel = evolution.panel;
       this.evoBullets = evolution.evoBullets;
       this.evoSpeed = evolution.evoSpeed;
       const skillModal = this.createSkillModal();
@@ -312,12 +318,15 @@
       this.levelNotice.y = CANVAS_HEIGHT * 0.45;
       this.levelNotice.alpha = 0;
       this.root.addChild(this.levelNotice);
+      this.applyResponsiveLayout();
+      this.showStart(true);
+      stage.on(Laya.Event.RESIZE, this, this.applyResponsiveLayout);
     }
     getOverlaySize() {
       const stageW = Laya.stage && Laya.stage.width || CANVAS_WIDTH;
       const stageH = Laya.stage && Laya.stage.height || CANVAS_HEIGHT;
       const w = Math.max(CANVAS_WIDTH, stageW);
-      const h = Math.max(CANVAS_HEIGHT * 2, stageH * 2);
+      const h = Math.max(CANVAS_HEIGHT, stageH);
       return { w, h };
     }
     createStartScreen() {
@@ -333,6 +342,7 @@
       title.align = "center";
       title.y = 180;
       panel.addChild(title);
+      this.startTitle = title;
       const btn = this.createButton("开始游戏", 260, 70, "#4CAF50");
       btn.pos(size.w / 2 - 130, 330);
       btn.on(Laya.Event.CLICK, this, () => {
@@ -340,6 +350,7 @@
         (_a = this.startHandler) == null ? void 0 : _a.call(this);
       });
       panel.addChild(btn);
+      this.startButton = btn;
       const hint = new Laya.Label("WASD: 移动\n鼠标左键: 射击");
       hint.fontSize = 24;
       hint.color = "#CCCCCC";
@@ -348,6 +359,7 @@
       hint.align = "center";
       hint.y = 450;
       panel.addChild(hint);
+      this.startHint = hint;
       return panel;
     }
     createResourceBar() {
@@ -380,7 +392,7 @@
       coinText.color = "#E5E7EB";
       coinText.pos(224, 11);
       wrap.addChild(coinText);
-      return { staminaText, coinText };
+      return { wrap, staminaText, coinText };
     }
     createTopPanel() {
       const left = new Laya.Sprite();
@@ -431,7 +443,7 @@
       expText.color = "#DDDDDD";
       expText.y = 126;
       left.addChild(expText);
-      return { levelInfo, scoreInfo, healthText, expText, healthBarFill, expBarFill };
+      return { wrap: left, levelInfo, scoreInfo, healthText, expText, healthBarFill, expBarFill };
     }
     createEvolutionPanel() {
       const panel = new Laya.Sprite();
@@ -468,7 +480,49 @@
       evoSpeed.align = "center";
       evoSpeed.pos(200, 40);
       panel.addChild(evoSpeed);
-      return { evoBullets, evoSpeed };
+      return { panel, evoBullets, evoSpeed };
+    }
+    applyResponsiveLayout() {
+      const viewW = this.stage && this.stage.width || CANVAS_WIDTH;
+      const viewH = this.stage && this.stage.height || CANVAS_HEIGHT;
+      const scale = this.uiScale;
+      const margin = 12;
+      const resourceBaseHeight = 44;
+      const topPanelGap = 12;
+      const skillIconsBaseWidth = 184;
+      this.resourceWrap.scale(scale, scale);
+      this.resourceWrap.pos(14, margin);
+      const topPanelY = margin + resourceBaseHeight * scale + topPanelGap;
+      this.topPanelWrap.scale(scale, scale);
+      this.topPanelWrap.pos(16, topPanelY);
+      this.skillIconsWrap.scale(scale, scale);
+      this.skillIconsWrap.pos(viewW - skillIconsBaseWidth * scale - 16, topPanelY);
+      this.evolutionPanel.scale(scale, scale);
+      const evolutionBottomMargin = scale > 1 ? 120 : 20;
+      this.evolutionPanel.pos(viewW * 0.5 - 340 * scale * 0.5, viewH - 80 * scale - evolutionBottomMargin);
+      this.pauseButton.scale(scale, scale);
+      this.pauseButton.pos(16, viewH - 52 * scale - 16);
+      this.levelNotice.width = viewW;
+      this.levelNotice.y = viewH * 0.45;
+      this.startScreen.graphics.clear();
+      this.startScreen.graphics.drawRect(0, 0, viewW, viewH, "#101010");
+      this.startScreen.size(viewW, viewH);
+      const startScale = scale > 1 ? 1.18 : 1;
+      if (this.startTitle) {
+        this.startTitle.width = viewW;
+        this.startTitle.fontSize = Math.floor(56 * startScale);
+        this.startTitle.y = Math.floor(viewH * 0.22);
+      }
+      if (this.startButton) {
+        this.startButton.scale(startScale, startScale);
+        const btnW = 260 * startScale;
+        this.startButton.pos(Math.floor((viewW - btnW) * 0.5), Math.floor(viewH * 0.42));
+      }
+      if (this.startHint) {
+        this.startHint.width = viewW;
+        this.startHint.fontSize = Math.floor(24 * startScale);
+        this.startHint.y = Math.floor(viewH * 0.58);
+      }
     }
     createSkillModal() {
       const size = this.getOverlaySize();
@@ -572,6 +626,12 @@
     }
     showStart(show) {
       this.startScreen.visible = show;
+      const gameplayVisible = !show;
+      this.topPanelWrap.visible = gameplayVisible;
+      this.evolutionPanel.visible = gameplayVisible;
+      this.skillIconsWrap.visible = gameplayVisible;
+      this.levelNotice.visible = gameplayVisible;
+      this.pauseButton.visible = gameplayVisible && this.pauseButtonWanted;
     }
     updateScore(score) {
       this.scoreInfo.text = `积分: ${score}`;
@@ -586,7 +646,9 @@
     updateHealth(health, maxHealth) {
       const progress = Math.max(0, health / Math.max(1, maxHealth));
       this.healthBarFill.scaleX = progress;
-      this.healthText.text = `${Math.ceil(health)} / ${Math.ceil(maxHealth)}`;
+      const safeHealth = Math.max(0, Math.ceil(health));
+      const safeMax = Math.max(1, Math.ceil(maxHealth));
+      this.healthText.text = `${safeHealth} / ${safeMax}`;
     }
     updateExp(level, exp, expToNext) {
       const progress = Math.min(exp / Math.max(1, expToNext), 1);
@@ -696,7 +758,8 @@
       this.pauseModal.visible = show;
     }
     setPauseButtonVisible(visible) {
-      this.pauseButton.visible = visible;
+      this.pauseButtonWanted = visible;
+      this.pauseButton.visible = visible && !this.startScreen.visible;
     }
     showLevelNotice(text, duration) {
       this.levelNotice.text = text;
@@ -1634,6 +1697,9 @@
       return;
     }
     game.player.health -= amount;
+    if (game.player.health < 0) {
+      game.player.health = 0;
+    }
     game.player.invincible = 30;
     game.updateHealthUI();
     game.showFloatText(`-${amount}`, game.player.x, game.player.y - 30, "#FF0000");
@@ -1652,13 +1718,12 @@
     baseTex: null,
     starsTex: null,
     lastTick: 0,
-    baseScrollA: 0,
-    baseScrollB: -CANVAS_HEIGHT,
-    scrollA: 0,
-    scrollB: -CANVAS_HEIGHT,
+    baseOffset: 0,
+    starOffset: 0,
     texW: 0,
     texH: 0
   };
+  var BOSS_VISUAL_SCALE = 2;
   function getBackgroundTexSize() {
     const stageW = Laya.stage && Laya.stage.width || CANVAS_WIDTH;
     const stageH = Laya.stage && Laya.stage.height || CANVAS_HEIGHT;
@@ -1745,7 +1810,7 @@
       }
       if (boss.isChargeWarning || boss.isCharging) {
         const length = Math.max(140, boss.chargeDistanceLeft || 480);
-        const width = boss.radius * (boss.isCharging ? 1.8 : 2.2);
+        const width = boss.radius * BOSS_VISUAL_SCALE * (boss.isCharging ? 1.8 : 2.2);
         const alpha = boss.isCharging ? 0.12 : 0.26 + Math.sin(timestamp / 65) * 0.05;
         drawRotatedRect(g, boss.x, boss.y, length, width, boss.chargeAngle || 0, `rgba(255,0,0,${alpha})`, "rgba(255,110,110,0.95)", 2);
       }
@@ -1798,10 +1863,8 @@
     bgRuntime.starsA = starsA;
     bgRuntime.starsB = starsB;
     bgRuntime.lastTick = 0;
-    bgRuntime.baseScrollA = 0;
-    bgRuntime.baseScrollB = -bgRuntime.texH;
-    bgRuntime.scrollA = 0;
-    bgRuntime.scrollB = -bgRuntime.texH;
+    bgRuntime.baseOffset = 0;
+    bgRuntime.starOffset = 0;
   }
   function renderBackgroundLayer(game, timestamp) {
     ensureBackgroundSprites(game);
@@ -1818,23 +1881,9 @@
     const speed = game.severePerformanceMode ? 0.018 : game.lowPerformanceMode ? 0.026 : 0.036;
     const drift = dt * speed;
     const baseDrift = drift * 0.42;
-    bgRuntime.baseScrollA += baseDrift;
-    bgRuntime.baseScrollB += baseDrift;
     const tileH = Math.max(CANVAS_HEIGHT, bgRuntime.texH || CANVAS_HEIGHT);
-    if (bgRuntime.baseScrollA >= tileH) {
-      bgRuntime.baseScrollA = bgRuntime.baseScrollB - tileH;
-    }
-    if (bgRuntime.baseScrollB >= tileH) {
-      bgRuntime.baseScrollB = bgRuntime.baseScrollA - tileH;
-    }
-    bgRuntime.scrollA += drift;
-    bgRuntime.scrollB += drift;
-    if (bgRuntime.scrollA >= tileH) {
-      bgRuntime.scrollA = bgRuntime.scrollB - tileH;
-    }
-    if (bgRuntime.scrollB >= tileH) {
-      bgRuntime.scrollB = bgRuntime.scrollA - tileH;
-    }
+    bgRuntime.baseOffset = (bgRuntime.baseOffset + baseDrift) % tileH;
+    bgRuntime.starOffset = (bgRuntime.starOffset + drift) % tileH;
     const camX = game.cameraX || 0;
     const camY = game.cameraY || 0;
     const baseRangeX = Math.max(0, (bgRuntime.texW || CANVAS_WIDTH) - CANVAS_WIDTH);
@@ -1843,12 +1892,22 @@
     const basePy = -camY * 0.12;
     const starPx = starRangeX > 0 ? -(camX * 0.16 % starRangeX) : 0;
     const starPy = -camY * 0.16;
+    const baseY2 = bgRuntime.baseOffset + basePy;
+    const baseY1 = baseY2 - tileH;
+    const starY2 = bgRuntime.starOffset + starPy;
+    const starY1 = starY2 - tileH;
+    const bx = Math.round(basePx);
+    const sx = Math.round(starPx);
+    const by1 = Math.floor(baseY1);
+    const by2 = Math.floor(baseY2);
+    const sy1 = Math.floor(starY1);
+    const sy2 = Math.floor(starY2);
     if (bgRuntime.baseA && bgRuntime.baseB) {
-      bgRuntime.baseA.pos(basePx, bgRuntime.baseScrollA + basePy);
-      bgRuntime.baseB.pos(basePx, bgRuntime.baseScrollB + basePy);
+      bgRuntime.baseA.pos(bx, by1);
+      bgRuntime.baseB.pos(bx, by2);
     }
-    bgRuntime.starsA.pos(starPx, bgRuntime.scrollA + starPy);
-    bgRuntime.starsB.pos(starPx, bgRuntime.scrollB + starPy);
+    bgRuntime.starsA.pos(sx, sy1);
+    bgRuntime.starsB.pos(sx, sy2);
     const pulseA = 0.76 + Math.sin(timestamp * 16e-4) * 0.12;
     const pulseB = 0.64 + Math.cos(timestamp * 12e-4) * 0.1;
     bgRuntime.starsA.alpha = pulseA;
@@ -1856,33 +1915,36 @@
   }
   function drawBossBody(g, boss, timestamp) {
     const pulse = 0.85 + Math.sin(timestamp * 0.01) * 0.12;
+    const x = boss.x;
+    const y = boss.y;
+    const r = boss.radius * BOSS_VISUAL_SCALE;
     if (!boss.name) {
-      g.drawCircle(boss.x, boss.y, boss.radius, boss.color);
+      g.drawCircle(x, y, r, boss.color);
       return;
     }
     if (boss.name.indexOf("狂怒") >= 0) {
-      g.drawCircle(boss.x, boss.y, boss.radius, "#7A0000");
-      g.drawCircle(boss.x, boss.y, boss.radius * 0.68, "#F44336");
+      g.drawCircle(x, y, r, "#7A0000");
+      g.drawCircle(x, y, r * 0.68, "#F44336");
       for (let i = 0; i < 2; i++) {
         const side = i === 0 ? 1 : -1;
-        const hornBaseX = boss.x + side * boss.radius * 0.45;
-        const hornBaseY = boss.y - boss.radius * 0.55;
+        const hornBaseX = x + side * r * 0.45;
+        const hornBaseY = y - r * 0.55;
         g.drawPoly(0, 0, [
           hornBaseX,
           hornBaseY,
-          hornBaseX + side * boss.radius * 0.55,
-          hornBaseY - boss.radius * 0.35,
-          hornBaseX + side * boss.radius * 0.08,
-          hornBaseY + boss.radius * 0.18
+          hornBaseX + side * r * 0.55,
+          hornBaseY - r * 0.35,
+          hornBaseX + side * r * 0.08,
+          hornBaseY + r * 0.18
         ], "#FFD54F", "#FFF8E1", 2);
       }
       for (let i = 0; i < 6; i++) {
         const angle = Math.PI * 2 / 6 * i + timestamp * 12e-4;
         g.drawLine(
-          boss.x + Math.cos(angle) * boss.radius * 0.8,
-          boss.y + Math.sin(angle) * boss.radius * 0.8,
-          boss.x + Math.cos(angle) * boss.radius * 1.16,
-          boss.y + Math.sin(angle) * boss.radius * 1.16,
+          x + Math.cos(angle) * r * 0.8,
+          y + Math.sin(angle) * r * 0.8,
+          x + Math.cos(angle) * r * 1.16,
+          y + Math.sin(angle) * r * 1.16,
           "#FF8A80",
           3
         );
@@ -1890,47 +1952,47 @@
       return;
     }
     if (boss.name.indexOf("终焉") >= 0) {
-      g.drawCircle(boss.x, boss.y, boss.radius * 1.2, "rgba(18,24,45,0.96)");
-      g.drawCircle(boss.x, boss.y, boss.radius * 1.02, "rgba(39,59,105,0.68)");
-      g.drawCircle(boss.x, boss.y, boss.radius * 0.64, "#607D8B");
-      g.drawCircle(boss.x, boss.y, boss.radius * (0.88 + 0.06 * pulse), null, "rgba(220,235,255,0.68)", 3);
-      drawRotatedRect(g, boss.x, boss.y, boss.radius * 1.7, boss.radius * 0.38, timestamp * 25e-4, "rgba(141,110,255,0.25)", "rgba(209,196,233,0.82)", 2);
+      g.drawCircle(x, y, r * 1.2, "rgba(18,24,45,0.96)");
+      g.drawCircle(x, y, r * 1.02, "rgba(39,59,105,0.68)");
+      g.drawCircle(x, y, r * 0.64, "#607D8B");
+      g.drawCircle(x, y, r * (0.88 + 0.06 * pulse), null, "rgba(220,235,255,0.68)", 3);
+      drawRotatedRect(g, x, y, r * 1.7, r * 0.38, timestamp * 25e-4, "rgba(141,110,255,0.25)", "rgba(209,196,233,0.82)", 2);
       return;
     }
     if (boss.name.indexOf("飞天") >= 0) {
-      g.drawCircle(boss.x, boss.y, boss.radius * 0.82, "#8D6E63");
-      g.drawCircle(boss.x - boss.radius * 0.45, boss.y + boss.radius * 0.88, boss.radius * 0.33, "#5D4037");
-      g.drawCircle(boss.x + boss.radius * 0.45, boss.y + boss.radius * 0.88, boss.radius * 0.33, "#5D4037");
-      g.drawEllipse(boss.x - boss.radius * 1.15, boss.y - boss.radius * 0.5, boss.radius * 1.05, boss.radius * 0.72, "rgba(255,193,7,0.55)", "rgba(255,245,157,0.8)", 1);
-      g.drawEllipse(boss.x + boss.radius * 0.1, boss.y - boss.radius * 0.5, boss.radius * 1.05, boss.radius * 0.72, "rgba(255,193,7,0.55)", "rgba(255,245,157,0.8)", 1);
+      g.drawCircle(x, y, r * 0.82, "#8D6E63");
+      g.drawCircle(x - r * 0.45, y + r * 0.88, r * 0.33, "#5D4037");
+      g.drawCircle(x + r * 0.45, y + r * 0.88, r * 0.33, "#5D4037");
+      g.drawEllipse(x - r * 1.15, y - r * 0.5, r * 1.05, r * 0.72, "rgba(255,193,7,0.55)", "rgba(255,245,157,0.8)", 1);
+      g.drawEllipse(x + r * 0.1, y - r * 0.5, r * 1.05, r * 0.72, "rgba(255,193,7,0.55)", "rgba(255,245,157,0.8)", 1);
       return;
     }
     if (boss.name.indexOf("弹幕") >= 0) {
-      g.drawCircle(boss.x, boss.y, boss.radius * 0.88, "#FF7043");
-      g.drawCircle(boss.x, boss.y, boss.radius * 0.5, "#FFD54F");
+      g.drawCircle(x, y, r * 0.88, "#FF7043");
+      g.drawCircle(x, y, r * 0.5, "#FFD54F");
       const spikeCount = 12;
       for (let i = 0; i < spikeCount; i++) {
         const angle = Math.PI * 2 / spikeCount * i + timestamp * 1e-3;
-        const baseR = boss.radius * 0.88;
-        const tipR = boss.radius * 1.28;
-        const sideR = boss.radius * 0.18;
+        const baseR = r * 0.88;
+        const tipR = r * 1.28;
+        const sideR = r * 0.18;
         const cx = Math.cos(angle);
         const cy = Math.sin(angle);
         const px = -cy;
         const py = cx;
         g.drawPoly(0, 0, [
-          boss.x + cx * baseR + px * sideR,
-          boss.y + cy * baseR + py * sideR,
-          boss.x + cx * tipR,
-          boss.y + cy * tipR,
-          boss.x + cx * baseR - px * sideR,
-          boss.y + cy * baseR - py * sideR
+          x + cx * baseR + px * sideR,
+          y + cy * baseR + py * sideR,
+          x + cx * tipR,
+          y + cy * tipR,
+          x + cx * baseR - px * sideR,
+          y + cy * baseR - py * sideR
         ], "#FFB74D", "#FFE082", 1);
       }
       return;
     }
-    g.drawCircle(boss.x, boss.y, boss.radius, boss.color);
-    g.drawCircle(boss.x, boss.y, boss.radius * (0.58 + 0.1 * pulse), "rgba(255,255,255,0.2)");
+    g.drawCircle(x, y, r, boss.color);
+    g.drawCircle(x, y, r * (0.58 + 0.1 * pulse), "rgba(255,255,255,0.2)");
   }
   function renderWorld(game, _deltaTime) {
     const timestamp = Laya.timer.currTimer;
@@ -1970,13 +2032,14 @@
         continue;
       }
       drawBossBody(g, enemy, timestamp);
+      const renderRadius = enemy.radius * BOSS_VISUAL_SCALE;
       if (enemy.health < enemy.maxHealth) {
-        const barWidth = enemy.radius * 2;
-        g.drawRect(enemy.x - barWidth / 2, enemy.y - enemy.radius - 10, barWidth, 4, "#555555");
-        g.drawRect(enemy.x - barWidth / 2, enemy.y - enemy.radius - 10, barWidth * (enemy.health / enemy.maxHealth), 4, enemy.isBoss ? "#FFD700" : "#00FF00");
+        const barWidth = renderRadius * 2;
+        g.drawRect(enemy.x - barWidth / 2, enemy.y - renderRadius - 14, barWidth, 6, "#555555");
+        g.drawRect(enemy.x - barWidth / 2, enemy.y - renderRadius - 14, barWidth * (enemy.health / enemy.maxHealth), 6, enemy.isBoss ? "#FFD700" : "#00FF00");
       }
       if (enemy.isBoss && enemy.name) {
-        g.fillText(enemy.name, enemy.x, enemy.y - enemy.radius - 20, "14px Arial", "#FFFFFF", "center");
+        g.fillText(enemy.name, enemy.x, enemy.y - renderRadius - 28, "22px Arial", "#FFFFFF", "center");
       }
     }
   }
@@ -2378,7 +2441,7 @@
       applyTexture(sp, getEnemyTexture(enemy, tex));
       sp.visible = true;
       sp.pos(enemy.x, enemy.y);
-      const scale = Math.max(0.55, enemy.radius / 14);
+      const scale = Math.max(0.55, enemy.radius / 14) * 2;
       sp.scale(scale, scale);
       sp.rotation = 0;
       write++;
@@ -2901,7 +2964,7 @@
       stage.addChild(this.world);
       this.isTouchDevice = this.detectTouchDevice();
       this.stars = this.createStarField();
-      this.ui = new GameUI(stage);
+      this.ui = new GameUI(stage, this.isTouchDevice);
       this.loadResourceState();
       this.ui.bindStart(() => this.startGame());
       this.ui.bindSkillPick((skillId) => this.selectSkill(skillId));
@@ -3497,13 +3560,18 @@
     const nav = Laya.Browser.window.navigator;
     const isTouchDevice = "ontouchstart" in Laya.Browser.window || nav && nav.maxTouchPoints > 0;
     if (isTouchDevice) {
-      setCanvasSize(MOBILE_CANVAS.width, MOBILE_CANVAS.height);
+      const innerW = Math.max(1, Laya.Browser.clientWidth || MOBILE_CANVAS.width);
+      const innerH = Math.max(1, Laya.Browser.clientHeight || MOBILE_CANVAS.height);
+      const adaptiveHeight = Math.max(MOBILE_CANVAS.height, Math.round(MOBILE_CANVAS.width * (innerH / innerW)));
+      setCanvasSize(MOBILE_CANVAS.width, adaptiveHeight);
     } else {
       setCanvasSize(DESKTOP_CANVAS.width, DESKTOP_CANVAS.height);
     }
     stage.width = CANVAS_WIDTH;
     stage.height = CANVAS_HEIGHT;
     stage.scaleMode = "fixedauto";
+    stage.alignH = "center";
+    stage.alignV = "middle";
     stage.bgColor = "#1A1A1A";
     stage.screenMode = isTouchDevice ? "vertical" : "none";
     return new ShootGame(stage);
